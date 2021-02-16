@@ -20,7 +20,22 @@ async function runAction(
   })
 }
 
-// shows how the runner will run a javascript action with env / stdout protocol
-test('test this Action locally', async () => {
-  expect(await runAction()).toEqual(0)
-})
+if (process.env.RUN_NETWORK_TESTS !== 'true') {
+  test('skipping tests requiring network access', async () => {
+    console.log(
+      `If you want to run tests that access the network, set:\nexport RUN_NETWORK_TESTS=true`
+    )
+  })
+} else {
+  // shows how the runner will run a javascript action with env / stdout protocol
+  test('cannot download 32-bit minimal SDK', async () => {
+    expect(
+      await runAction({
+        env: {
+          INPUT_FLAVOR: 'minimal',
+          INPUT_ARCHITECTURE: 'i686'
+        }
+      })
+    ).toEqual(1)
+  })
+}

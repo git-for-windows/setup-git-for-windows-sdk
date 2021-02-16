@@ -2,10 +2,18 @@ name: 'Setup Git for Windows SDK'
 description: 'Set up an environment to develop Git for Windows'
 author: 'Johannes Schindelin'
 inputs:
-  milliseconds: # change this
-    required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  flavor:
+    required: false
+    description: 'The subset (if any) of the SDK: minimal, makepkg-git, build-installers, or full'
+    default: 'minimal'
+  architecture:
+    required: false
+    description: 'The architecture of the SDK: x86_64 or i686'
+    default: 'x86_64'
+  path:
+    required: false
+    description: 'Where to write the SDK files'
+    default: ''
 runs:
   using: 'node12'
   main: 'dist/index.js'
