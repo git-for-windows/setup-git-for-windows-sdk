@@ -1,5 +1,9 @@
 {
+    "cSpell.ignoreRegExpList": [
+        "mingw-w64-git"
+    ],
     "cSpell.words": [
+        "Pacman",
         "vercel"
     ]
 }

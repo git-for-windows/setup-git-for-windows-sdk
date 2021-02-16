@@ -1,8 +1,8 @@
 {
-  "name": "typescript-action",
+  "name": "setup-git-for-windows-sdk",
   "version": "0.0.0",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Set up an environment to develop Git for WindowsTypeScript template action",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -15,12 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/git-for-windows/setup-git-for-windows-sdk.git"
   },
   "keywords": [
     "actions",
     "node",
-    "setup"
+    "setup",
+    "git",
+    "git-for-windows"
   ],
   "author": "",
   "license": "MIT",

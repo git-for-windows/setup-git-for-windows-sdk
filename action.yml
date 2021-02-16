@@ -1,6 +1,6 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Setup Git for Windows SDK'
+description: 'Set up an environment to develop Git for Windows'
+author: 'Johannes Schindelin'
 inputs:
   milliseconds: # change this
     required: true
