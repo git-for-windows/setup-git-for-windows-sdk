@@ -1,6 +1,8 @@
 {
     "cSpell.ignoreRegExpList": [
-        "mingw-w64-git"
+        "makepkg-git",
+        "mingw-w64-git",
+        "vstfs://.*"
     ],
     "cSpell.words": [
         "Pacman",
