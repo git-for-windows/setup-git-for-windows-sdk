@@ -76,5 +76,5 @@ test('can obtain build ID', async () => {
     }
   )
   const {id} = await get('minimal', 'x86_64')
-  expect(id).toEqual(71000)
+  expect(id).toEqual('git-sdk-64-minimal-71000')
 })
