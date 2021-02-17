@@ -182,6 +182,7 @@ export async function get(
   flavor: string,
   architecture: string
 ): Promise<{
+  artifactName: string
   id: string
   download: (
     outputDirectory: string,
@@ -254,5 +255,5 @@ export async function get(
       flavor === 'full' ? unpackTarXZInZipFromURL : undefined
     )
   }
-  return {download, id}
+  return {artifactName, download, id}
 }
