@@ -1,6 +1,9 @@
 import fs from 'fs'
 import https from 'https'
+import {Readable} from 'stream'
 import unzipper from 'unzipper'
+import {spawn} from 'child_process'
+import {delimiter} from 'path'
 
 async function fetchJSONFromURL<T>(url: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -50,7 +53,13 @@ async function unzip(
   url: string,
   stripPrefix: string,
   outputDirectory: string,
-  verbose: boolean | number
+  verbose: boolean | number,
+  streamEntries?: (
+    path: string,
+    stream: Readable,
+    directory: string,
+    _verbose: boolean | number
+  ) => void
 ): Promise<void> {
   let progress =
     verbose === false
@@ -72,6 +81,10 @@ async function unzip(
       res
         .pipe(unzipper.Parse())
         .on('entry', entry => {
+          if (streamEntries) {
+            streamEntries(entry.path, entry, outputDirectory, verbose)
+            return
+          }
           if (!entry.path.startsWith(stripPrefix)) {
             process.stderr.write(
               `warning: skipping ${entry.path} because it does not start with ${stripPrefix}\n`
@@ -93,6 +106,34 @@ async function unzip(
         .on('finish', resolve)
     )
   })
+}
+
+/* We're (ab-)using Git for Windows' `tar.exe` and `xz.exe` to do the job */
+function unpackTarXZEntry(
+  path: string,
+  stream: Readable,
+  outputDirectory: string,
+  verbose: boolean | number = false
+): void {
+  if (path.endsWith('/')) return
+  if (!path.endsWith('.tar.xz')) {
+    process.stderr.write(`warning: unhandled entry: ${path}`)
+    return
+  }
+
+  const usrBinPath = 'C:/Program Files/Git/usr/bin'
+  const tarXZ = spawn(
+    `${usrBinPath}/tar.exe`,
+    [verbose === true ? 'xJvf' : 'xJf', '-'],
+    {
+      cwd: outputDirectory,
+      env: {
+        PATH: `${usrBinPath}${delimiter}${process.env.PATH}`
+      },
+      stdio: ['pipe', 'inherit', 'inherit']
+    }
+  )
+  stream.pipe(tarXZ.stdin)
 }
 
 export async function get(
@@ -127,8 +168,11 @@ export async function get(
       artifactName = 'git-sdk-64-makepkg-git'
       break
     case 'build-installers':
+    case 'full':
       definitionId = architecture === 'i686' ? 30 : 29
-      artifactName = `git-sdk-${architecture === 'i686' ? 32 : 64}-${flavor}`
+      artifactName = `git-sdk-${architecture === 'i686' ? 32 : 64}-${
+        flavor === 'full' ? 'full-sdk' : flavor
+      }`
       break
     default:
       throw new Error(`Unknown flavor: '${flavor}`)
@@ -160,7 +204,13 @@ export async function get(
       )
     }
     const url = filtered[0].resource.downloadUrl
-    await unzip(url, `${artifactName}/`, outputDirectory, verbose)
+    await unzip(
+      url,
+      `${artifactName}/`,
+      outputDirectory,
+      verbose,
+      flavor === 'full' ? unpackTarXZEntry : undefined
+    )
   }
   return {download, id}
 }
