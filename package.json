@@ -27,6 +27,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@actions/cache": "^1.0.6",
     "@actions/core": "^1.2.6",
     "unzipper": "^0.10.11"
   },
