@@ -3,6 +3,7 @@
         "CHERE_INVOKING",
         "makepkg-git",
         "mingw-w64-git",
+        "mingw64",
         "vstfs://.*"
     ],
     "cSpell.words": [
@@ -10,5 +11,6 @@
         "autodrain",
         "unzipper",
         "vercel"
-    ]
+    ],
+    "git.ignoreLimitWarning": true
 }
