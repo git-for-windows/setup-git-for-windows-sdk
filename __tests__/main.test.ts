@@ -1,28 +1,26 @@
-import {wait} from '../src/wait'
+/* eslint-disable no-console */
 import * as process from 'process'
-import * as cp from 'child_process'
+import * as child_process from 'child_process'
 import * as path from 'path'
 
-test('throws invalid number', async () => {
-  const input = parseInt('foo', 10)
-  await expect(wait(input)).rejects.toThrow('milliseconds not a number')
-})
+async function runAction(
+  options?: child_process.SpawnOptionsWithoutStdio
+): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
+    const nodeExePath = process.execPath
+    const scriptPath = path.join(__dirname, '..', 'lib', 'main.js')
 
-test('wait 500 ms', async () => {
-  const start = new Date()
-  await wait(500)
-  const end = new Date()
-  var delta = Math.abs(end.getTime() - start.getTime())
-  expect(delta).toBeGreaterThan(450)
-})
+    const child = child_process
+      .spawn(nodeExePath, [scriptPath], options)
+      .on('error', reject)
+      .on('close', resolve)
+
+    child.stderr.on('data', data => console.log(`${data}`))
+    child.stdout.on('data', data => console.log(`${data}`))
+  })
+}
 
 // shows how the runner will run a javascript action with env / stdout protocol
-test('test runs', () => {
-  process.env['INPUT_MILLISECONDS'] = '500'
-  const np = process.execPath
-  const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecFileSyncOptions = {
-    env: process.env
-  }
-  console.log(cp.execFileSync(np, [ip], options).toString())
+test('test this Action locally', async () => {
+  expect(await runAction()).toEqual(0)
 })
