@@ -77,7 +77,7 @@ async function unzip(
   }
   mkdirp(outputDirectory)
   return new Promise<void>((resolve, reject) => {
-    https.get(url, res =>
+    const handleStream = (res: Readable): void => {
       res
         .pipe(unzipper.Parse())
         .on('entry', entry => {
@@ -104,7 +104,19 @@ async function unzip(
         .on('error', reject)
         .on('finish', progress)
         .on('finish', resolve)
-    )
+    }
+
+    if (!streamEntries) {
+      https.get(url, handleStream)
+    } else {
+      // `https.get()` seems to have performance problems that cause frequent
+      // ECONNRESET problems with larger payloads. Let's (ab-)use Git for Windows'
+      // `curl.exe` to do the downloading for us in that case.
+      const curl = spawn('C:/Program Files/Git/mingw64/bin/curl.exe', [url])
+      handleStream(curl.stdout)
+      // eslint-disable-next-line no-console
+      curl.stderr.on('data', chunk => console.log(`${chunk}`))
+    }
   })
 }
 
