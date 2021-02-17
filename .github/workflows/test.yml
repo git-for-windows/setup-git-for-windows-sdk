@@ -15,6 +15,16 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test
+      - run: npm run package
+      - name: Verify that `dist/index.js` is up to date
+        shell: bash
+        run: |
+          # `ncc` produces output with mixed line endings
+          test -z "$(git diff -w HEAD | tee diff.txt)" || {
+            echo 'Files changed after `npm run package`'
+            cat diff.txt
+            exit 1
+          }
   test: # make sure the action works on a clean machine without building
     runs-on: windows-latest
     steps:
