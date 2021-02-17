@@ -22,6 +22,9 @@ async function run(): Promise<void> {
       outputDirectory,
       verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true'
     )
+
+    // Set up PATH so that Git for Windows' SDK's `bash.exe` is found
+    core.addPath(`${outputDirectory}/usr/bin`)
   } catch (error) {
     core.setFailed(error.message)
   }
