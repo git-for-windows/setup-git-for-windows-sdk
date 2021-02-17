@@ -12,12 +12,28 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
-          npm install
-      - run: |
-          npm run all
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test
   test: # make sure the action works on a clean machine without building
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ./
+      - name: Run this Action in-place
+        uses: ./
+      - name: Verify that the Bash of Git for Windows' SDK is used
+        shell: bash
+        run: |
+          set -x
+          echo "This is the MSYS2 pseudo root: $(cygpath -aw /)"
+          printf '%s\n' \
+            "#include <stdio.h>" \
+            '' \
+            'int main()' \
+            '{' \
+            '  printf("Hello, world!\n");' \
+            '  return 0;' \
+            '}' >hello-world.c
+          gcc -o hello-world.exe hello-world.c
+          hello="$(./hello-world.exe)"
+          test 'Hello, world!' = "$hello"
