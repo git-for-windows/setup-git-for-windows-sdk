@@ -14,6 +14,10 @@ inputs:
     required: false
     description: 'Where to write the SDK files'
     default: ''
+  verbose:
+    required: false
+    description: 'Whether to log files as they are extracted'
+    default: '250'
 runs:
   using: 'node12'
   main: 'dist/index.js'

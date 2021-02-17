@@ -12,12 +12,16 @@ async function run(): Promise<void> {
     }
     const flavor = core.getInput('flavor')
     const architecture = core.getInput('architecture')
+    const verbose = core.getInput('verbose')
 
     const {artifactName, download} = await get(flavor, architecture)
     const outputDirectory = core.getInput('path') || `C:/${artifactName}`
 
     core.info(`Downloading ${artifactName}`)
-    await download(outputDirectory, true)
+    await download(
+      outputDirectory,
+      verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true'
+    )
   } catch (error) {
     core.setFailed(error.message)
   }
