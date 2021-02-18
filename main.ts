@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import process from 'process'
 import {get} from './src/downloader'
+import {restoreCache, saveCache} from '@actions/cache'
 
 async function run(): Promise<void> {
   try {
@@ -14,14 +15,29 @@ async function run(): Promise<void> {
     const architecture = core.getInput('architecture')
     const verbose = core.getInput('verbose')
 
-    const {artifactName, download} = await get(flavor, architecture)
+    const {artifactName, download, id} = await get(flavor, architecture)
     const outputDirectory = core.getInput('path') || `C:/${artifactName}`
+    let useCache = core.getInput('cache') === 'true'
+
+    try {
+      if (useCache && (await restoreCache([outputDirectory], id))) {
+        core.info(`Cached ${id} was successfully restored`)
+        return
+      }
+    } catch (e) {
+      core.warning(`Cannot use @actions/cache (${e})`)
+      useCache = false
+    }
 
     core.info(`Downloading ${artifactName}`)
     await download(
       outputDirectory,
       verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true'
     )
+
+    if (useCache && !(await saveCache([outputDirectory], id))) {
+      core.warning(`Failed to cache ${id}`)
+    }
 
     // Set up PATH so that Git for Windows' SDK's `bash.exe` is found
     core.addPath(`${outputDirectory}/usr/bin`)

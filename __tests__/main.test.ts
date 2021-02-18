@@ -50,7 +50,8 @@ if (process.env.RUN_NETWORK_TESTS !== 'true') {
           INPUT_FLAVOR: 'minimal',
           INPUT_ARCHITECTURE: 'x86_64',
           INPUT_PATH: outputDirectory,
-          INPUT_VERBOSE: '250'
+          INPUT_VERBOSE: '250',
+          INPUT_CACHE: 'true'
         }
       })
     ).toEqual(0)
