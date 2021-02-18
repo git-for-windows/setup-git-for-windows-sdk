@@ -37,6 +37,7 @@ jobs:
         run: |
           set -x
           echo "This is the MSYS2 pseudo root: $(cygpath -aw /)"
+          test "gcc is /mingw64/bin/gcc" = "$(type gcc)"
           printf '%s\n' \
             "#include <stdio.h>" \
             '' \
