@@ -19,9 +19,19 @@ jobs:
       run: make
 ```
 
-## Available flavors
+## Input parameters
 
-It supports several flavors:
+### Available flavors
+
+This Action supports several flavors (read: subsets) of the Git for Windows SDK that can be configured like this:
+
+```yaml
+- uses: git-for-windows/setup-git-for-windows-sdk
+  with:
+    flavor: build-installers
+```
+
+The supported flavors are:
 
 - `minimal`:
 
@@ -39,9 +49,22 @@ It supports several flavors:
 
   This is the "full" SDK, [as users would install it](https://gitforwindows.org/#download-sdk), with a pre-selected set of packages pre-installed. Additional packages can be installed via `pacman -S <package>`.
 
-## CPU architecture support
+### CPU architecture support
 
-The Git for Windows SDK can be installed targeting `x86_64` (AKA "64-bit") and `i686` (AKA 32-bit).
+Git for Windows SDK comes in variants  targeting `x86_64` (AKA "64-bit") and `i686` (AKA 32-bit). The default is `x86_64` and can be overridden like this:
+
+```yaml
+- uses: git-for-windows/setup-git-for-windows-sdk
+  with:
+    flavor: build-installers
+    architecture: i686
+```
+
+Please note that only the `build-installers` and the `full` flavors are available for `i686`.
+
+### Verbosity
+
+By default, this Action prints a line whenever 250 items were extracted (this does not work for the `full` flavor, where this Action is silent by default). It can be overridden by setting the input parameter `verbose`; setting it to a number will show updates whenever that many items were extracted. Setting it to `false` will suppress progress updates. Setting it to `true` will print every extracted file (this also works for the `full` flavor).
 
 ## Developing _this_ Action
 
