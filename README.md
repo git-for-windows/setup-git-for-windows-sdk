@@ -19,7 +19,9 @@ jobs:
       run: make
 ```
 
-## Available flavors
+## Input parameters
+
+### Available flavors
 
 It supports several flavors:
 
@@ -39,7 +41,7 @@ It supports several flavors:
 
   This is the "full" SDK, [as users would install it](https://gitforwindows.org/#download-sdk), with a pre-selected set of packages pre-installed. Additional packages can be installed via `pacman -S <package>`.
 
-## CPU architecture support
+### CPU architecture support
 
 The Git for Windows SDK can be installed targeting `x86_64` (AKA "64-bit") and `i686` (AKA 32-bit).
 
