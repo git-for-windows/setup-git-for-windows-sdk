@@ -23,7 +23,15 @@ jobs:
 
 ### Available flavors
 
-It supports several flavors:
+This Action supports several flavors (read: subsets) of the Git for Windows SDK that can be configured like this:
+
+```yaml
+- uses: git-for-windows/setup-git-for-windows-sdk
+  with:
+    flavor: build-installers
+```
+
+The supported flavors are:
 
 - `minimal`:
 
@@ -43,7 +51,16 @@ It supports several flavors:
 
 ### CPU architecture support
 
-The Git for Windows SDK can be installed targeting `x86_64` (AKA "64-bit") and `i686` (AKA 32-bit).
+Git for Windows SDK comes in variants  targeting `x86_64` (AKA "64-bit") and `i686` (AKA 32-bit). The default is `x86_64` and can be overridden like this:
+
+```yaml
+- uses: git-for-windows/setup-git-for-windows-sdk
+  with:
+    flavor: build-installers
+    architecture: i686
+```
+
+Please note that only the `build-installers` and the `full` flavors are available for `i686`.
 
 ## Developing _this_ Action
 
