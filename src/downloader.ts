@@ -4,36 +4,28 @@ import {Readable} from 'stream'
 import unzipper from 'unzipper'
 import {spawn} from 'child_process'
 import {delimiter} from 'path'
+import fetch from 'node-fetch'
 
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
 const gitForWindowsMINGW64BinPath = 'C:/Program Files/Git/mingw64/bin'
 
 async function fetchJSONFromURL<T>(url: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    https
-      .request(url, {}, res => {
-        if (res.statusCode !== 200) {
-          reject(
-            new Error(
-              `Got code ${res.statusCode}, URL: ${url}, message: ${res.statusMessage}`
-            )
+  return new Promise<T>(async (resolve, reject) => {
+    try {
+      const res = await fetch(url)
+      if (res.status !== 200) {
+        reject(
+          new Error(
+            `Got code ${res.status}, URL: ${url}, message: ${res.statusText}`
           )
-          return
-        }
-        const data: Uint8Array[] = []
-        res
-          .on('data', (chunk: Uint8Array) => data.push(chunk))
-          .on('end', () => {
-            try {
-              resolve(JSON.parse(Buffer.concat(data).toString('utf-8')))
-            } catch (e) {
-              reject(e)
-            }
-          })
-          .on('error', e => reject(e))
-      })
-      .on('error', e => reject(e))
-      .end()
+        )
+        return
+      }
+
+      resolve(res.json())
+    } catch (e) {
+      reject(e)
+    }
   })
 }
 
