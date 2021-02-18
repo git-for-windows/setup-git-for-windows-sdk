@@ -29,24 +29,27 @@ async function run(): Promise<void> {
         useCache = false
     }
 
+    let needToDownload = true
     try {
       if (useCache && (await restoreCache([outputDirectory], id))) {
         core.info(`Cached ${id} was successfully restored`)
-        return
+        needToDownload = false
       }
     } catch (e) {
       core.warning(`Cannot use @actions/cache (${e})`)
       useCache = false
     }
 
-    core.info(`Downloading ${artifactName}`)
-    await download(
-      outputDirectory,
-      verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true'
-    )
+    if (needToDownload) {
+      core.info(`Downloading ${artifactName}`)
+      await download(
+        outputDirectory,
+        verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true'
+      )
 
-    if (useCache && !(await saveCache([outputDirectory], id))) {
-      core.warning(`Failed to cache ${id}`)
+      if (useCache && !(await saveCache([outputDirectory], id))) {
+        core.warning(`Failed to cache ${id}`)
+      }
     }
 
     // Set up PATH so that Git for Windows' SDK's `bash.exe` is found
