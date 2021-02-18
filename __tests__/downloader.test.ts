@@ -1,7 +1,6 @@
-import {ClientRequest, IncomingMessage} from 'http'
-import https from 'https'
-import {mocked} from 'ts-jest/utils'
 import {get} from '../src/downloader'
+import {mocked} from 'ts-jest/utils'
+import fetch from 'node-fetch'
 
 const buildIdResponse = {
   count: 1,
@@ -43,38 +42,14 @@ const buildIdResponse = {
   ]
 }
 
-jest.mock('https')
-
-declare type Callback = (data?: object) => void
+jest.mock('node-fetch')
+const {Response} = jest.requireActual('node-fetch')
 
 test('can obtain build ID', async () => {
-  mocked(https.request).mockImplementation(
-    (
-      _url,
-      _options,
-      callback: ((res: IncomingMessage) => void) | undefined
-    ): ClientRequest => {
-      const res = {
-        statusCode: 200,
-        on: (eventType: string, eventCallback: Callback): object => {
-          switch (eventType) {
-            case 'data':
-              eventCallback(Buffer.from(JSON.stringify(buildIdResponse)))
-              break
-            case 'end':
-              eventCallback()
-              break
-          }
-          return res
-        }
-      } as IncomingMessage
-      expect(callback).not.toBeUndefined()
-      callback && callback(res)
-      const req = {} as ClientRequest
-      Object.assign(req, {on: () => {}})
-      return req
-    }
+  mocked(fetch).mockReturnValue(
+    Promise.resolve(new Response(JSON.stringify(buildIdResponse)))
   )
   const {id} = await get('minimal', 'x86_64')
+  expect(fetch).toHaveBeenCalledTimes(1)
   expect(id).toEqual('git-sdk-64-minimal-71000')
 })
