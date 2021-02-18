@@ -62,6 +62,10 @@ Git for Windows SDK comes in variants  targeting `x86_64` (AKA "64-bit") and `i6
 
 Please note that only the `build-installers` and the `full` flavors are available for `i686`.
 
+### Verbosity
+
+By default, this Action prints a line whenever 250 items were extracted (this does not work for the `full` flavor, where this Action is silent by default). It can be overridden by setting the input parameter `verbose`; setting it to a number will show updates whenever that many items were extracted. Setting it to `false` will suppress progress updates. Setting it to `true` will print every extracted file (this also works for the `full` flavor).
+
 ## Developing _this_ Action
 
 > First, you'll need to have a reasonably modern version of `node` handy, such as Node 12.
