@@ -10,23 +10,13 @@ const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
 const gitForWindowsMINGW64BinPath = 'C:/Program Files/Git/mingw64/bin'
 
 async function fetchJSONFromURL<T>(url: string): Promise<T> {
-  return new Promise<T>(async (resolve, reject) => {
-    try {
-      const res = await fetch(url)
-      if (res.status !== 200) {
-        reject(
-          new Error(
-            `Got code ${res.status}, URL: ${url}, message: ${res.statusText}`
-          )
-        )
-        return
-      }
-
-      resolve(res.json())
-    } catch (e) {
-      reject(e)
-    }
-  })
+  const res = await fetch(url)
+  if (res.status !== 200) {
+    throw new Error(
+      `Got code ${res.status}, URL: ${url}, message: ${res.statusText}`
+    )
+  }
+  return res.json()
 }
 
 function mkdirp(directoryPath: string): void {
