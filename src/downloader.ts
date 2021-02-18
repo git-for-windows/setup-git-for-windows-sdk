@@ -5,6 +5,9 @@ import unzipper from 'unzipper'
 import {spawn} from 'child_process'
 import {delimiter} from 'path'
 
+const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
+const gitForWindowsMINGW64BinPath = 'C:/Program Files/Git/mingw64/bin'
+
 async function fetchJSONFromURL<T>(url: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     https
@@ -54,12 +57,11 @@ async function unzip(
   stripPrefix: string,
   outputDirectory: string,
   verbose: boolean | number,
-  streamEntries?: (
-    path: string,
-    stream: Readable,
+  downloader?: (
+    _url: string,
     directory: string,
     _verbose: boolean | number
-  ) => void
+  ) => Promise<void>
 ): Promise<void> {
   let progress =
     verbose === false
@@ -76,15 +78,19 @@ async function unzip(
     }
   }
   mkdirp(outputDirectory)
+
+  if (downloader) {
+    // `https.get()` seems to have performance problems that cause frequent
+    // ECONNRESET problems with larger payloads. Let's (ab-)use Git for Windows'
+    // `curl.exe` to do the downloading for us in that case.
+    return await downloader(url, outputDirectory, verbose)
+  }
+
   return new Promise<void>((resolve, reject) => {
-    const handleStream = (res: Readable): void => {
+    https.get(url, (res: Readable): void => {
       res
         .pipe(unzipper.Parse())
         .on('entry', entry => {
-          if (streamEntries) {
-            streamEntries(entry.path, entry, outputDirectory, verbose)
-            return
-          }
           if (!entry.path.startsWith(stripPrefix)) {
             process.stderr.write(
               `warning: skipping ${entry.path} because it does not start with ${stripPrefix}\n`
@@ -104,48 +110,72 @@ async function unzip(
         .on('error', reject)
         .on('finish', progress)
         .on('finish', resolve)
-    }
-
-    if (!streamEntries) {
-      https.get(url, handleStream)
-    } else {
-      // `https.get()` seems to have performance problems that cause frequent
-      // ECONNRESET problems with larger payloads. Let's (ab-)use Git for Windows'
-      // `curl.exe` to do the downloading for us in that case.
-      const curl = spawn('C:/Program Files/Git/mingw64/bin/curl.exe', [url])
-      handleStream(curl.stdout)
-      // eslint-disable-next-line no-console
-      curl.stderr.on('data', chunk => console.log(`${chunk}`))
-    }
+    })
   })
 }
 
 /* We're (ab-)using Git for Windows' `tar.exe` and `xz.exe` to do the job */
-function unpackTarXZEntry(
-  path: string,
-  stream: Readable,
+async function unpackTarXZInZipFromURL(
+  url: string,
   outputDirectory: string,
   verbose: boolean | number = false
-): void {
-  if (path.endsWith('/')) return
-  if (!path.endsWith('.tar.xz')) {
-    process.stderr.write(`warning: unhandled entry: ${path}`)
-    return
+): Promise<void> {
+  const tmp = await fs.promises.mkdtemp(`${outputDirectory}/tmp`)
+  const zipPath = `${tmp}/artifacts.zip`
+  const curl = spawn(
+    `${gitForWindowsMINGW64BinPath}/curl.exe`,
+    ['-o', zipPath, url],
+    {stdio: [undefined, 'inherit', 'inherit']}
+  )
+  await new Promise<void>((resolve, reject) => {
+    curl
+      .on('close', code =>
+        code === 0 ? resolve() : reject(new Error(`${code}`))
+      )
+      .on('error', e => reject(new Error(`${e}`)))
+  })
+
+  const zipContents = (await unzipper.Open.file(zipPath)).files.filter(
+    e => !e.path.endsWith('/')
+  )
+  if (zipContents.length !== 1) {
+    throw new Error(
+      `${zipPath} does not contain exactly one file (${zipContents.map(
+        e => e.path
+      )})`
+    )
   }
 
-  const usrBinPath = 'C:/Program Files/Git/usr/bin'
+  // eslint-disable-next-line no-console
+  console.log(`unzipping ${zipPath}\n`)
   const tarXZ = spawn(
-    `${usrBinPath}/tar.exe`,
-    [verbose === true ? 'xJvf' : 'xJf', '-'],
+    `${gitForWindowsUsrBinPath}/bash.exe`,
+    [
+      '-lc',
+      `unzip -p "${zipPath}" ${zipContents[0].path} | tar ${
+        verbose === true ? 'xJvf' : 'xJf'
+      } -`
+    ],
     {
       cwd: outputDirectory,
       env: {
-        PATH: `${usrBinPath}${delimiter}${process.env.PATH}`
+        CHERE_INVOKING: '1',
+        MSYSTEM: 'MINGW64',
+        PATH: `${gitForWindowsUsrBinPath}${delimiter}${process.env.PATH}`
       },
-      stdio: ['pipe', 'inherit', 'inherit']
+      stdio: [undefined, 'inherit', 'inherit']
     }
   )
-  stream.pipe(tarXZ.stdin)
+  await new Promise<void>((resolve, reject) => {
+    tarXZ.on('close', code => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`tar: exited with code ${code}`))
+      }
+    })
+  })
+  await fs.promises.rmdir(tmp, {recursive: true})
 }
 
 export async function get(
@@ -221,7 +251,7 @@ export async function get(
       `${artifactName}/`,
       outputDirectory,
       verbose,
-      flavor === 'full' ? unpackTarXZEntry : undefined
+      flavor === 'full' ? unpackTarXZInZipFromURL : undefined
     )
   }
   return {download, id}
