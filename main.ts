@@ -52,7 +52,8 @@ async function run(): Promise<void> {
       }
     }
 
-    // Set up PATH so that Git for Windows' SDK's `bash.exe` is found
+    // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
+    core.addPath(`${outputDirectory}/usr/bin/core_perl`)
     core.addPath(`${outputDirectory}/usr/bin`)
     const msystem = architecture === 'i686' ? 'MING32' : 'MINGW64'
     core.addPath(`${outputDirectory}/${msystem.toLocaleLowerCase()}/bin`)
