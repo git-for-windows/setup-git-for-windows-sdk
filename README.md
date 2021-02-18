@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Git for Windows' minimal SDK
-      uses: git-for-windows/setup-git-for-windows-sdk@v1
+      uses: git-for-windows/setup-git-for-windows-sdk@v0
     - name: Build
       shell: bash
       run: make
@@ -64,10 +64,25 @@ Run the tests :heavy_check_mark:
 ```bash
 $ npm test
 
- PASS  ./index.test.js
-  ✓ throws invalid number (3ms)
-  ✓ wait 500 ms (504ms)
-  ✓ test runs (95ms)
+> setup-git-for-windows-sdk@0.0.0 test C:\Users\me\setup-git-for-windows-sdk
+> jest
 
+PASS __tests__/main.test.ts (28.869 s)
+  √ skipping tests requiring network access (224 ms)
+
+  console.log
+    If you want to run tests that access the network, set:
+    export RUN_NETWORK_TESTS=true
+
+      at __tests__/main.test.ts:26:13
+
+PASS __tests__/downloader.test.ts (29.889 s)
+  √ can obtain build ID (9 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        31.11 s
+Ran all test suites.
 ...
 ```
