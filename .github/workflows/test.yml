@@ -38,6 +38,8 @@ jobs:
           set -x
           echo "This is the MSYS2 pseudo root: $(cygpath -aw /)"
           test "gcc is /mingw64/bin/gcc" = "$(type gcc)"
+          test "prove is /usr/bin/core_perl/prove" = "$(type prove)"
+          prove -V
           printf '%s\n' \
             "#include <stdio.h>" \
             '' \
