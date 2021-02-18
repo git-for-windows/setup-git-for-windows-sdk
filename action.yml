@@ -21,7 +21,7 @@ inputs:
   cache:
     required: false
     description: 'Use @actions/cache to accelerate this Action'
-    default: 'true'
+    default: 'auto'
 runs:
   using: 'node12'
   main: 'dist/index.js'

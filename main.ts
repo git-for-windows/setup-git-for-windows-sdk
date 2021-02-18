@@ -17,7 +17,17 @@ async function run(): Promise<void> {
 
     const {artifactName, download, id} = await get(flavor, architecture)
     const outputDirectory = core.getInput('path') || `C:/${artifactName}`
-    let useCache = core.getInput('cache') === 'true'
+    let useCache: boolean
+    switch (core.getInput('cache')) {
+      case 'true':
+        useCache = true
+        break
+      case 'auto':
+        useCache = flavor !== 'full'
+        break
+      default:
+        useCache = false
+    }
 
     try {
       if (useCache && (await restoreCache([outputDirectory], id))) {
