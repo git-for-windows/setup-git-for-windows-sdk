@@ -21,6 +21,10 @@ inputs:
     required: false
     description: 'Whether to log files as they are extracted'
     default: '250'
+  cache:
+    required: false
+    description: 'Use @actions/cache to accelerate this Action'
+    default: 'auto'
 runs:
   using: 'node12'
   main: 'dist/index.js'

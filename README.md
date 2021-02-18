@@ -66,6 +66,12 @@ Please note that only the `build-installers` and the `full` flavors are availabl
 
 By default, this Action prints a line whenever 250 items were extracted (this does not work for the `full` flavor, where this Action is silent by default). It can be overridden by setting the input parameter `verbose`; setting it to a number will show updates whenever that many items were extracted. Setting it to `false` will suppress progress updates. Setting it to `true` will print every extracted file (this also works for the `full` flavor).
 
+### Caching
+
+To accelerate this Action, artifacts are cached once downloaded. This can be turned off by setting the input parameter `cache` to `false`.
+
+In practice, caching the `full` artifacts does not provide much of a speed-up. Instead, it slows it down by adding several minutes during with the artifact is cached. Therefore, caching is disabled for the `full` artifacts by default, corresponding to `cache: auto`.
+
 ## Developing _this_ Action
 
 > First, you'll need to have a reasonably modern version of `node` handy, such as Node 12.
