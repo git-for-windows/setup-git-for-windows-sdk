@@ -80,8 +80,13 @@ function run() {
             if (needToDownload) {
                 core.info(`Downloading ${artifactName}`);
                 yield download(outputDirectory, verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true');
-                if (useCache && !(yield cache_1.saveCache([outputDirectory], id))) {
-                    core.warning(`Failed to cache ${id}`);
+                try {
+                    if (useCache && !(yield cache_1.saveCache([outputDirectory], id))) {
+                        core.warning(`Failed to cache ${id}`);
+                    }
+                }
+                catch (e) {
+                    core.warning(`Failed to cache ${id}: ${e.message}`);
                 }
             }
             // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
