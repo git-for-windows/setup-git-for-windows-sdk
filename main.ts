@@ -47,8 +47,12 @@ async function run(): Promise<void> {
         verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true'
       )
 
-      if (useCache && !(await saveCache([outputDirectory], id))) {
-        core.warning(`Failed to cache ${id}`)
+      try {
+        if (useCache && !(await saveCache([outputDirectory], id))) {
+          core.warning(`Failed to cache ${id}`)
+        }
+      } catch (e) {
+        core.warning(`Failed to cache ${id}: ${e.message}`)
       }
     }
 
