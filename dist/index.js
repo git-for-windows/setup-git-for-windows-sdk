@@ -92,7 +92,7 @@ function run() {
             // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
             core.addPath(`${outputDirectory}/usr/bin/core_perl`);
             core.addPath(`${outputDirectory}/usr/bin`);
-            const msystem = architecture === 'i686' ? 'MING32' : 'MINGW64';
+            const msystem = architecture === 'i686' ? 'MINGW32' : 'MINGW64';
             core.addPath(`${outputDirectory}/${msystem.toLocaleLowerCase()}/bin`);
             core.exportVariable('MSYSTEM', msystem);
         }
