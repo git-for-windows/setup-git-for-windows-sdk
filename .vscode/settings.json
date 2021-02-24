@@ -1,9 +1,11 @@
 {
     "cSpell.ignoreRegExpList": [
         "CHERE_INVOKING",
+        "LC_CTYPE",
         "SDK's",
         "makepkg-git",
         "mingw-w64-git",
+        "mingw32",
         "mingw64",
         "vstfs://.*"
     ],

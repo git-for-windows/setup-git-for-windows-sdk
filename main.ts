@@ -62,6 +62,13 @@ async function run(): Promise<void> {
     const msystem = architecture === 'i686' ? 'MINGW32' : 'MINGW64'
     core.addPath(`${outputDirectory}/${msystem.toLocaleLowerCase()}/bin`)
     core.exportVariable('MSYSTEM', msystem)
+    if (
+      !('LANG' in process.env) &&
+      !('LC_ALL' in process.env) &&
+      !('LC_CTYPE' in process.env)
+    ) {
+      core.exportVariable('LC_CTYPE', 'C.UTF-8')
+    }
   } catch (error) {
     core.setFailed(error.message)
   }
