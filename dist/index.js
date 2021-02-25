@@ -214,7 +214,15 @@ function unpackTarXZInZipFromURL(url, outputDirectory, verbose = false) {
     return __awaiter(this, void 0, void 0, function* () {
         const tmp = yield fs_1.default.promises.mkdtemp(`${outputDirectory}/tmp`);
         const zipPath = `${tmp}/artifacts.zip`;
-        const curl = child_process_1.spawn(`${gitForWindowsMINGW64BinPath}/curl.exe`, ['-o', zipPath, url], { stdio: [undefined, 'inherit', 'inherit'] });
+        const curl = child_process_1.spawn(`${gitForWindowsMINGW64BinPath}/curl.exe`, [
+            '--retry',
+            '16',
+            '--retry-all-errors',
+            '--retry-connrefused',
+            '-o',
+            zipPath,
+            url
+        ], { stdio: [undefined, 'inherit', 'inherit'] });
         yield new Promise((resolve, reject) => {
             curl
                 .on('close', code => code === 0 ? resolve() : reject(new Error(`${code}`)))
