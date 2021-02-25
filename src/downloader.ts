@@ -106,7 +106,15 @@ async function unpackTarXZInZipFromURL(
   const zipPath = `${tmp}/artifacts.zip`
   const curl = spawn(
     `${gitForWindowsMINGW64BinPath}/curl.exe`,
-    ['-o', zipPath, url],
+    [
+      '--retry',
+      '16',
+      '--retry-all-errors',
+      '--retry-connrefused',
+      '-o',
+      zipPath,
+      url
+    ],
     {stdio: [undefined, 'inherit', 'inherit']}
   )
   await new Promise<void>((resolve, reject) => {
