@@ -10,6 +10,7 @@
         "vstfs://.*"
     ],
     "cSpell.words": [
+        "Backoff",
         "MSYSTEM",
         "Pacman",
         "autodrain",
