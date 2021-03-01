@@ -15,7 +15,8 @@ die 'The `pre-push` hook is not up to date with `pre-push.hook`'
 git diff --quiet dist/ ||
 die '`dist/` is dirty'
 
-if test 'npm run build && npm run package' != "$(git show -s --format=%s HEAD)"
+base="$(git rev-list HEAD -1 -- dist/)"
+if test 0 -lt $(git rev-list --count ${base+$base..}HEAD -- \*.ts)
 then
     echo "Verifying that dist/ is up to date" >&2
     npm run build &&
