@@ -4,7 +4,7 @@ import {Readable} from 'stream'
 import unzipper from 'unzipper'
 import {spawn} from 'child_process'
 import {delimiter} from 'path'
-import fetch from 'node-fetch'
+import fetch from '@adobe/node-fetch-retry'
 
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
 const gitForWindowsMINGW64BinPath = 'C:/Program Files/Git/mingw64/bin'

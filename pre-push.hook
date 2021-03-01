@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# This pre-push hook ensures that we only push branches with up to date files in `dist/`.
+#
+# While at it, it also ensures that it is itself up to date with `pre-push.hook`
+
+die () {
+    echo "$*" >&2
+    exit 1
+}
+
+git diff --no-index --quiet pre-push.hook "$(git rev-parse --git-path hooks/pre-push)" ||
+die 'The `pre-push` hook is not up to date with `pre-push.hook`'
+
+git diff --quiet dist/ ||
+die '`dist/` is dirty'
+
+if test 'npm run build && npm run package' != "$(git show -s --format=%s HEAD)"
+then
+    echo "Verifying that dist/ is up to date" >&2
+    npm run build &&
+    npm run package &&
+    if ! git diff --quiet dist/
+    then
+        echo "Committing dist/ because it was not up to date" >&2
+        git commit -sm "npm run build && npm run package" dist/
+    fi
+fi
