@@ -240,13 +240,30 @@ export async function get(
       )
     }
     const url = filtered[0].resource.downloadUrl
-    await unzip(
-      url,
-      `${artifactName}/`,
-      outputDirectory,
-      verbose,
-      flavor === 'full' ? unpackTarXZInZipFromURL : undefined
-    )
+    let delayInSeconds = 1
+    for (;;) {
+      try {
+        await unzip(
+          url,
+          `${artifactName}/`,
+          outputDirectory,
+          verbose,
+          flavor === 'full' ? unpackTarXZInZipFromURL : undefined
+        )
+        break
+      } catch (e) {
+        delayInSeconds *= 2
+        if (delayInSeconds >= 60) {
+          throw e
+        }
+        process.stderr.write(
+          `Encountered problem downloading/extracting ${url}: ${e}; Retrying in ${delayInSeconds} seconds...\n`
+        )
+        await new Promise((resolve, _reject) =>
+          setTimeout(resolve, delayInSeconds * 1000)
+        )
+      }
+    }
   }
   return {artifactName, download, id}
 }
