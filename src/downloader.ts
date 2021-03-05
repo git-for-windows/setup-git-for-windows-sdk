@@ -69,30 +69,33 @@ async function unzip(
   }
 
   return new Promise<void>((resolve, reject) => {
-    https.get(url, (res: Readable): void => {
-      res
-        .pipe(unzipper.Parse())
-        .on('entry', entry => {
-          if (!entry.path.startsWith(stripPrefix)) {
-            process.stderr.write(
-              `warning: skipping ${entry.path} because it does not start with ${stripPrefix}\n`
-            )
-          }
-          const entryPath = `${outputDirectory}/${entry.path.substring(
-            stripPrefix.length
-          )}`
-          progress(entryPath)
-          if (entryPath.endsWith('/')) {
-            mkdirp(entryPath.replace(/\/$/, ''))
-            entry.autodrain()
-          } else {
-            entry.pipe(fs.createWriteStream(`${entryPath}`))
-          }
-        })
-        .on('error', reject)
-        .on('finish', progress)
-        .on('finish', resolve)
-    })
+    https
+      .get(url, (res: Readable): void => {
+        res
+          .on('error', reject)
+          .pipe(unzipper.Parse())
+          .on('entry', entry => {
+            if (!entry.path.startsWith(stripPrefix)) {
+              process.stderr.write(
+                `warning: skipping ${entry.path} because it does not start with ${stripPrefix}\n`
+              )
+            }
+            const entryPath = `${outputDirectory}/${entry.path.substring(
+              stripPrefix.length
+            )}`
+            progress(entryPath)
+            if (entryPath.endsWith('/')) {
+              mkdirp(entryPath.replace(/\/$/, ''))
+              entry.autodrain()
+            } else {
+              entry.pipe(fs.createWriteStream(`${entryPath}`))
+            }
+          })
+          .on('error', reject)
+          .on('finish', progress)
+          .on('finish', resolve)
+      })
+      .on('error', reject)
   })
 }
 
@@ -237,13 +240,30 @@ export async function get(
       )
     }
     const url = filtered[0].resource.downloadUrl
-    await unzip(
-      url,
-      `${artifactName}/`,
-      outputDirectory,
-      verbose,
-      flavor === 'full' ? unpackTarXZInZipFromURL : undefined
-    )
+    let delayInSeconds = 1
+    for (;;) {
+      try {
+        await unzip(
+          url,
+          `${artifactName}/`,
+          outputDirectory,
+          verbose,
+          flavor === 'full' ? unpackTarXZInZipFromURL : undefined
+        )
+        break
+      } catch (e) {
+        delayInSeconds *= 2
+        if (delayInSeconds >= 60) {
+          throw e
+        }
+        process.stderr.write(
+          `Encountered problem downloading/extracting ${url}: ${e}; Retrying in ${delayInSeconds} seconds...\n`
+        )
+        await new Promise((resolve, _reject) =>
+          setTimeout(resolve, delayInSeconds * 1000)
+        )
+      }
+    }
   }
   return {artifactName, download, id}
 }

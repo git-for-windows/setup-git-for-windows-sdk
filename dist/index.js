@@ -185,8 +185,10 @@ function unzip(url, stripPrefix, outputDirectory, verbose, downloader) {
             return yield downloader(url, outputDirectory, verbose);
         }
         return new Promise((resolve, reject) => {
-            https_1.default.get(url, (res) => {
+            https_1.default
+                .get(url, (res) => {
                 res
+                    .on('error', reject)
                     .pipe(unzipper_1.default.Parse())
                     .on('entry', entry => {
                     if (!entry.path.startsWith(stripPrefix)) {
@@ -205,7 +207,8 @@ function unzip(url, stripPrefix, outputDirectory, verbose, downloader) {
                     .on('error', reject)
                     .on('finish', progress)
                     .on('finish', resolve);
-            });
+            })
+                .on('error', reject);
         });
     });
 }
@@ -302,7 +305,21 @@ function get(flavor, architecture) {
                 throw new Error(`Could not find ${artifactName} in ${JSON.stringify(data2, null, 4)}`);
             }
             const url = filtered[0].resource.downloadUrl;
-            yield unzip(url, `${artifactName}/`, outputDirectory, verbose, flavor === 'full' ? unpackTarXZInZipFromURL : undefined);
+            let delayInSeconds = 1;
+            for (;;) {
+                try {
+                    yield unzip(url, `${artifactName}/`, outputDirectory, verbose, flavor === 'full' ? unpackTarXZInZipFromURL : undefined);
+                    break;
+                }
+                catch (e) {
+                    delayInSeconds *= 2;
+                    if (delayInSeconds >= 60) {
+                        throw e;
+                    }
+                    process.stderr.write(`Encountered problem downloading/extracting ${url}: ${e}; Retrying in ${delayInSeconds} seconds...\n`);
+                    yield new Promise((resolve, _reject) => setTimeout(resolve, delayInSeconds * 1000));
+                }
+            }
         });
         return { artifactName, download, id };
     });
