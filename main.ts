@@ -31,7 +31,11 @@ async function run(): Promise<void> {
 
     let needToDownload = true
     try {
-      if (useCache && (await restoreCache([outputDirectory], id))) {
+      if (
+        'git-sdk-64-minimal-71789' !== id &&
+        useCache &&
+        (await restoreCache([outputDirectory], id))
+      ) {
         core.info(`Cached ${id} was successfully restored`)
         needToDownload = false
       }
