@@ -188,6 +188,7 @@ export async function get(
 
   let definitionId: number
   let artifactName: string
+  let azureDevOpsRepo = 'git-for-windows/git'
   switch (flavor) {
     case 'minimal':
       if (architecture === 'i686') {
@@ -210,11 +211,16 @@ export async function get(
         flavor === 'full' ? 'full-sdk' : flavor
       }`
       break
+    case 'vcpkg':
+      azureDevOpsRepo = 'git/git'
+      definitionId = 9
+      artifactName = 'compat'
+      break
     default:
       throw new Error(`Unknown flavor: '${flavor}`)
   }
 
-  const baseURL = 'https://dev.azure.com/git-for-windows/git/_apis/build/builds'
+  const baseURL = `https://dev.azure.com/${azureDevOpsRepo}/_apis/build/builds`
   const data = await fetchJSONFromURL<{
     count: number
     value: [{id: string; downloadURL: string}]

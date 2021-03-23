@@ -16,7 +16,9 @@ async function run(): Promise<void> {
     const verbose = core.getInput('verbose')
 
     const {artifactName, download, id} = await get(flavor, architecture)
-    const outputDirectory = core.getInput('path') || `C:/${artifactName}`
+    const outputDirectory =
+      core.getInput('path') ||
+      (artifactName === 'compat' ? 'compat/' : `C:/${artifactName}`)
     let useCache: boolean
     switch (core.getInput('cache')) {
       case 'true':
@@ -54,6 +56,11 @@ async function run(): Promise<void> {
       } catch (e) {
         core.warning(`Failed to cache ${id}: ${e.message}`)
       }
+    }
+
+    if (artifactName === 'compat') {
+      // The `vcpkg` artifacts do not need the `PATH` to be modified
+      return
     }
 
     // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
