@@ -54,7 +54,8 @@ function run() {
             const architecture = core.getInput('architecture');
             const verbose = core.getInput('verbose');
             const { artifactName, download, id } = yield downloader_1.get(flavor, architecture);
-            const outputDirectory = core.getInput('path') || `C:/${artifactName}`;
+            const outputDirectory = core.getInput('path') ||
+                (artifactName === 'compat' ? 'compat/' : `C:/${artifactName}`);
             let useCache;
             switch (core.getInput('cache')) {
                 case 'true':
@@ -88,6 +89,10 @@ function run() {
                 catch (e) {
                     core.warning(`Failed to cache ${id}: ${e.message}`);
                 }
+            }
+            if (artifactName === 'compat') {
+                // The `vcpkg` artifacts do not need the `PATH` to be modified
+                return;
             }
             // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
             core.addPath(`${outputDirectory}/usr/bin/core_perl`);
@@ -269,6 +274,7 @@ function get(flavor, architecture) {
         }
         let definitionId;
         let artifactName;
+        let azureDevOpsRepo = 'git-for-windows/git';
         switch (flavor) {
             case 'minimal':
                 if (architecture === 'i686') {
@@ -289,10 +295,15 @@ function get(flavor, architecture) {
                 definitionId = architecture === 'i686' ? 30 : 29;
                 artifactName = `git-sdk-${architecture === 'i686' ? 32 : 64}-${flavor === 'full' ? 'full-sdk' : flavor}`;
                 break;
+            case 'vcpkg':
+                azureDevOpsRepo = 'git/git';
+                definitionId = 9;
+                artifactName = 'compat';
+                break;
             default:
                 throw new Error(`Unknown flavor: '${flavor}`);
         }
-        const baseURL = 'https://dev.azure.com/git-for-windows/git/_apis/build/builds';
+        const baseURL = `https://dev.azure.com/${azureDevOpsRepo}/_apis/build/builds`;
         const data = yield fetchJSONFromURL(`${baseURL}?definitions=${definitionId}&statusFilter=completed&resultFilter=succeeded&$top=1`);
         if (data.count !== 1) {
             throw new Error(`Unexpected number of builds: ${data.count}`);
