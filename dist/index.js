@@ -68,9 +68,7 @@ function run() {
             }
             let needToDownload = true;
             try {
-                if ('git-sdk-64-minimal-71789' !== id &&
-                    useCache &&
-                    (yield cache_1.restoreCache([outputDirectory], id))) {
+                if (useCache && (yield cache_1.restoreCache([outputDirectory], id))) {
                     core.info(`Cached ${id} was successfully restored`);
                     needToDownload = false;
                 }
