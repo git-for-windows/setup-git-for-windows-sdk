@@ -1,0 +1,78 @@
+name: Auto-publish tags
+
+on:
+  push:
+    tags:
+    - 'v*' # Push events to release tags
+
+jobs:
+  build:
+    name: Publish GitHub Release from tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Import public GPG keys to verify the tag
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { execSync } = require('child_process')
+
+            for (const { key_id, raw_key } of (await github.users.listGpgKeysForUser({
+                username: 'dscho'
+            })).data) {
+              execSync(`gpg ${raw_key ? '--import' : `--recv-keys ${key_id}`}`,
+                { input: raw_key, stdio: [null, 'inherit', 'inherit'] })
+            }
+      - name: Check prerequisites
+        id: prerequisites
+        run: |
+          die () {
+            echo "::error::$*" >&2
+            exit 1
+          }
+
+          tag_name=${GITHUB_REF#refs/tags/}
+          test "x$GITHUB_REF" != "x$tag_name" || die "Not a tag: $GITHUB_REF"
+
+          train="$(echo "$tag_name" | sed -n 's|^\(v[0-9][0-9]*\)[.0-9]*$|\1|p')"
+          test -n "$train" || die "Unexpected tag name: $tag_name"
+          echo "$train" >train
+
+          if train_rev="$(git rev-parse --verify "refs/remotes/origin/$train")"
+          then
+            test 0 -eq "$(git rev-list --count "$GITHUB_REF..$train_rev")" ||
+            die "Branch '$train' does not fast-forward to tag '$tag_name'"
+          else
+            test "$train.0.0" = "$tag_name" || die "Branch '$train' does not yet exist?!?"
+          fi
+
+          git tag --verify "$tag_name" || die "Tag does not have a valid signature: $tag_name"
+
+          test "$(git rev-parse --verify refs/remotes/origin/main 2>&1)" = \
+            "$(git rev-parse --verify "$GITHUB_REF^0")" ||
+          die "The tag '$tag_name' does not point to the tip of 'main'"
+
+          echo "$tag_name" >tag_name
+          git cat-file tag "$GITHUB_REF" | sed -e '1,/^$/d' -e '/-----BEGIN PGP SIGNATURE-----/,$d' >body
+      - name: Create Release
+        if: github.repository_owner == 'git-for-windows'
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { readFileSync } = require('fs')
+
+            await github.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: readFileSync('tag_name').toString(),
+              draft: true,
+              prerelease: false,
+              body: readFileSync('body').toString()
+            })
+      - name: Push to release train branch
+        if: github.repository_owner == 'git-for-windows'
+        run: git push origin "$GITHUB_REF^0:refs/heads/$(cat train)"
