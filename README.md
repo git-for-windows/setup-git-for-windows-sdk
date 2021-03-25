@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Git for Windows' minimal SDK
-      uses: git-for-windows/setup-git-for-windows-sdk@v0
+      uses: git-for-windows/setup-git-for-windows-sdk@v1
     - name: Build
       shell: bash
       run: make
