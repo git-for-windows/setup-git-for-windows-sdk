@@ -12,6 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          token: ${{ secrets.PUSH_RELEASE_TRAINS_PAT }}
           fetch-depth: 0
       - name: Import public GPG keys to verify the tag
         uses: actions/github-script@v3
@@ -78,4 +79,5 @@ jobs:
             })
       - name: Push to release train branch
         if: github.repository_owner == 'git-for-windows'
-        run: git push origin "$GITHUB_REF^0:refs/heads/$(cat train)"
+        run: |
+          git push origin "$GITHUB_REF^0:refs/heads/$(cat train)"
