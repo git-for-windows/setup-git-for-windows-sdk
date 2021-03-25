@@ -9,8 +9,25 @@ die () {
     exit 1
 }
 
+LF='
+'
+
 git diff --no-index --quiet pre-push.hook "$(git rev-parse --git-path hooks/pre-push)" ||
 die 'The `pre-push` hook is not up to date with `pre-push.hook`'
+
+# Verify that any tagged version is reflected in its `package.json`
+for tag in $(git for-each-ref --format='%(refname:short)' --points-at=HEAD 'refs/tags/v[0-9]*')
+do
+    out="$(git tag --verify $tag 2>&1)" ||
+    die "$out$LF${LF}Tag $tag is not signed/signature cannot be verified"
+
+    git grep -q '"version": "'"${tag#v}"'"' refs/tags/$tag -- package.json || {
+        sed 's/\("version": "\)[^"]*/\1'"${tag#v}"/ <package.json >package.json.new &&
+        mv -f package.json.new package.json
+        die "package.json did not reflect $tag; It was adjusted."
+        exit 1
+    }
+done
 
 git diff --quiet dist/ ||
 die '`dist/` is dirty'
