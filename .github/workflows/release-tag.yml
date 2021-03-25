@@ -72,7 +72,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: readFileSync('tag_name').toString(),
-              draft: true,
+              draft: false,
               prerelease: false,
               body: readFileSync('body').toString()
             })
