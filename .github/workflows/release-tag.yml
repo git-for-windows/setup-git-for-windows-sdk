@@ -59,7 +59,7 @@ jobs:
             "$(git rev-parse --verify "$GITHUB_REF^0")" ||
           die "The tag '$tag_name' does not point to the tip of 'main'"
 
-          echo "$tag_name" >tag_name
+          printf '%s' "$tag_name" >tag_name
           git cat-file tag "$GITHUB_REF" | sed -e '1,/^$/d' -e '/-----BEGIN PGP SIGNATURE-----/,$d' >body
       - name: Create Release
         if: github.repository_owner == 'git-for-windows'
