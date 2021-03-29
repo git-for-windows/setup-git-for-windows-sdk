@@ -162,7 +162,7 @@ function mkdirp(directoryPath) {
     }
     fs_1.default.mkdirSync(directoryPath, { recursive: true });
 }
-function unzip(url, stripPrefix, outputDirectory, verbose, downloader) {
+function unzip(url, bytesToExtract, stripPrefix, outputDirectory, verbose, downloader) {
     return __awaiter(this, void 0, void 0, function* () {
         let progress = verbose === false
             ? () => { }
@@ -201,12 +201,21 @@ function unzip(url, stripPrefix, outputDirectory, verbose, downloader) {
                         entry.autodrain();
                     }
                     else {
-                        entry.pipe(fs_1.default.createWriteStream(`${entryPath}`));
+                        entry
+                            .pipe(fs_1.default.createWriteStream(`${entryPath}`))
+                            .on('finish', () => {
+                            bytesToExtract -= fs_1.default.statSync(entryPath).size;
+                        });
                     }
                 })
                     .on('error', reject)
                     .on('finish', progress)
-                    .on('finish', resolve);
+                    .on('finish', () => {
+                    bytesToExtract === 0
+                        ? resolve()
+                        : // eslint-disable-next-line prefer-promise-reject-errors
+                            reject(`${bytesToExtract} bytes left to extract`);
+                });
             })
                 .on('error', reject);
         });
@@ -305,10 +314,11 @@ function get(flavor, architecture) {
                 throw new Error(`Could not find ${artifactName} in ${JSON.stringify(data2, null, 4)}`);
             }
             const url = filtered[0].resource.downloadUrl;
+            const bytesToExtract = filtered[0].resource.properties.artifactsize;
             let delayInSeconds = 1;
             for (;;) {
                 try {
-                    yield unzip(url, `${artifactName}/`, outputDirectory, verbose, flavor === 'full' ? unpackTarXZInZipFromURL : undefined);
+                    yield unzip(url, bytesToExtract, `${artifactName}/`, outputDirectory, verbose, flavor === 'full' ? unpackTarXZInZipFromURL : undefined);
                     break;
                 }
                 catch (e) {
