@@ -69,10 +69,12 @@ jobs:
           script: |
             const { readFileSync } = require('fs')
 
+            const tag_name = readFileSync('tag_name').toString()
             await github.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: readFileSync('tag_name').toString(),
+              tag_name: tag_name,
+              name: tag_name,
               draft: false,
               prerelease: false,
               body: readFileSync('body').toString()
