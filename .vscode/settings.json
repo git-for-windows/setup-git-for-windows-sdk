@@ -13,6 +13,7 @@
         "Backoff",
         "MSYSTEM",
         "Pacman",
+        "artifactsize",
         "autodrain",
         "unzipper",
         "vercel"

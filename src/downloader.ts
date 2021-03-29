@@ -36,6 +36,7 @@ function mkdirp(directoryPath: string): void {
 
 async function unzip(
   url: string,
+  bytesToExtract: number,
   stripPrefix: string,
   outputDirectory: string,
   verbose: boolean | number,
@@ -88,12 +89,21 @@ async function unzip(
               mkdirp(entryPath.replace(/\/$/, ''))
               entry.autodrain()
             } else {
-              entry.pipe(fs.createWriteStream(`${entryPath}`))
+              entry
+                .pipe(fs.createWriteStream(`${entryPath}`))
+                .on('finish', () => {
+                  bytesToExtract -= fs.statSync(entryPath).size
+                })
             }
           })
           .on('error', reject)
           .on('finish', progress)
-          .on('finish', resolve)
+          .on('finish', () => {
+            bytesToExtract === 0
+              ? resolve()
+              : // eslint-disable-next-line prefer-promise-reject-errors
+                reject(`${bytesToExtract} bytes left to extract`)
+          })
       })
       .on('error', reject)
   })
@@ -231,7 +241,12 @@ export async function get(
   ): Promise<void> => {
     const data2 = await fetchJSONFromURL<{
       count: number
-      value: [{name: string; resource: {downloadUrl: string}}]
+      value: [
+        {
+          name: string
+          resource: {downloadUrl: string; properties: {artifactsize: number}}
+        }
+      ]
     }>(`${baseURL}/${data.value[0].id}/artifacts`)
     const filtered = data2.value.filter(e => e.name === artifactName)
     if (filtered.length !== 1) {
@@ -240,11 +255,13 @@ export async function get(
       )
     }
     const url = filtered[0].resource.downloadUrl
+    const bytesToExtract = filtered[0].resource.properties.artifactsize
     let delayInSeconds = 1
     for (;;) {
       try {
         await unzip(
           url,
+          bytesToExtract,
           `${artifactName}/`,
           outputDirectory,
           verbose,
