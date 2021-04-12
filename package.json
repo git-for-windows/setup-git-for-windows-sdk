@@ -27,7 +27,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@actions/cache": "^1.0.6",
+    "@actions/cache": "^1.0.7",
     "@actions/core": "^1.2.6",
     "@adobe/node-fetch-retry": "^1.1.0",
     "node-fetch": "^2.6.1",

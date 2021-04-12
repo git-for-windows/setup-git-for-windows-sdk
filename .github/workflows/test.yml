@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           # `ncc` produces output with mixed line endings
-          test -z "$(git diff -w HEAD | tee diff.txt)" || {
+          test -z "$(git diff -aw HEAD | tee diff.txt)" || {
             echo 'Files changed after `npm run package`'
             cat diff.txt
             exit 1
