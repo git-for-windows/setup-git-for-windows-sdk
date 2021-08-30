@@ -52,7 +52,7 @@ function run() {
             const flavor = core.getInput('flavor');
             const architecture = core.getInput('architecture');
             const verbose = core.getInput('verbose');
-            const { artifactName, download, id } = yield downloader_1.get(flavor, architecture);
+            const { artifactName, download, id } = yield (0, downloader_1.get)(flavor, architecture);
             const outputDirectory = core.getInput('path') || `C:/${artifactName}`;
             let useCache;
             switch (core.getInput('cache')) {
@@ -67,7 +67,7 @@ function run() {
             }
             let needToDownload = true;
             try {
-                if (useCache && (yield cache_1.restoreCache([outputDirectory], id))) {
+                if (useCache && (yield (0, cache_1.restoreCache)([outputDirectory], id))) {
                     core.info(`Cached ${id} was successfully restored`);
                     needToDownload = false;
                 }
@@ -80,12 +80,12 @@ function run() {
                 core.info(`Downloading ${artifactName}`);
                 yield download(outputDirectory, verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true');
                 try {
-                    if (useCache && !(yield cache_1.saveCache([outputDirectory], id))) {
+                    if (useCache && !(yield (0, cache_1.saveCache)([outputDirectory], id))) {
                         core.warning(`Failed to cache ${id}`);
                     }
                 }
                 catch (e) {
-                    core.warning(`Failed to cache ${id}: ${e.message}`);
+                    core.warning(`Failed to cache ${id}: ${e instanceof Error ? e.message : e}`);
                 }
             }
             // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
@@ -101,7 +101,7 @@ function run() {
             }
         }
         catch (error) {
-            core.setFailed(error.message);
+            core.setFailed(error instanceof Error ? error.message : `${error}`);
         }
     });
 }
@@ -139,7 +139,7 @@ const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin';
 const gitForWindowsMINGW64BinPath = 'C:/Program Files/Git/mingw64/bin';
 function fetchJSONFromURL(url) {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield node_fetch_retry_1.default(url);
+        const res = yield (0, node_fetch_retry_1.default)(url);
         if (res.status !== 200) {
             throw new Error(`Got code ${res.status}, URL: ${url}, message: ${res.statusText}`);
         }
@@ -155,7 +155,7 @@ function mkdirp(directoryPath) {
         throw new Error(`${directoryPath} exists, but is not a directory`);
     }
     catch (e) {
-        if (!e || e.code !== 'ENOENT') {
+        if (!(e instanceof Object) || e.code !== 'ENOENT') {
             throw e;
         }
     }
@@ -225,7 +225,7 @@ function unpackTarXZInZipFromURL(url, outputDirectory, verbose = false) {
     return __awaiter(this, void 0, void 0, function* () {
         const tmp = yield fs_1.default.promises.mkdtemp(`${outputDirectory}/tmp`);
         const zipPath = `${tmp}/artifacts.zip`;
-        const curl = child_process_1.spawn(`${gitForWindowsMINGW64BinPath}/curl.exe`, [
+        const curl = (0, child_process_1.spawn)(`${gitForWindowsMINGW64BinPath}/curl.exe`, [
             '--retry',
             '16',
             '--retry-all-errors',
@@ -245,7 +245,7 @@ function unpackTarXZInZipFromURL(url, outputDirectory, verbose = false) {
         }
         // eslint-disable-next-line no-console
         console.log(`unzipping ${zipPath}\n`);
-        const tarXZ = child_process_1.spawn(`${gitForWindowsUsrBinPath}/bash.exe`, [
+        const tarXZ = (0, child_process_1.spawn)(`${gitForWindowsUsrBinPath}/bash.exe`, [
             '-lc',
             `unzip -p "${zipPath}" ${zipContents[0].path} | tar ${verbose === true ? 'xJvf' : 'xJf'} -`
         ], {
