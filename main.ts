@@ -52,7 +52,9 @@ async function run(): Promise<void> {
           core.warning(`Failed to cache ${id}`)
         }
       } catch (e) {
-        core.warning(`Failed to cache ${id}: ${e.message}`)
+        core.warning(
+          `Failed to cache ${id}: ${e instanceof Error ? e.message : e}`
+        )
       }
     }
 
@@ -70,7 +72,7 @@ async function run(): Promise<void> {
       core.exportVariable('LC_CTYPE', 'C.UTF-8')
     }
   } catch (error) {
-    core.setFailed(error.message)
+    core.setFailed(error instanceof Error ? error.message : `${error}`)
   }
 }
 
