@@ -5,6 +5,9 @@ on:
     tags:
     - 'v*' # Push events to release tags
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Publish GitHub Release from tag
