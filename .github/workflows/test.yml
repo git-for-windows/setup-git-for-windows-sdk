@@ -26,6 +26,11 @@ jobs:
             cat diff.txt
             exit 1
           }
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: diff.txt
+          path: diff.txt
   test: # make sure the action works on a clean machine without building
     runs-on: windows-latest
     steps:
