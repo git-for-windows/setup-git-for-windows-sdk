@@ -14,6 +14,7 @@ async function run(): Promise<void> {
     const flavor = core.getInput('flavor')
     const architecture = core.getInput('architecture')
     const verbose = core.getInput('verbose')
+    const msysMode = core.getInput('msys') === 'true'
 
     const {artifactName, download, id} = await get(flavor, architecture)
     const outputDirectory = core.getInput('path') || `C:/${artifactName}`
@@ -58,11 +59,19 @@ async function run(): Promise<void> {
       }
     }
 
-    // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
-    core.addPath(`${outputDirectory}/usr/bin/core_perl`)
-    core.addPath(`${outputDirectory}/usr/bin`)
-    const msystem = architecture === 'i686' ? 'MINGW32' : 'MINGW64'
-    core.addPath(`${outputDirectory}/${msystem.toLocaleLowerCase()}/bin`)
+    const mingw = architecture === 'i686' ? 'MINGW32' : 'MINGW64'
+    const msystem = msysMode ? 'MSYS' : mingw
+
+    const binPaths = [
+      // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
+      '/usr/bin/core_perl',
+      '/usr/bin',
+      `/${mingw.toLocaleLowerCase()}/bin`
+    ]
+    for (const binPath of msysMode ? binPaths.reverse() : binPaths) {
+      core.addPath(`${outputDirectory}${binPath}`)
+    }
+
     core.exportVariable('MSYSTEM', msystem)
     if (
       !('LANG' in process.env) &&

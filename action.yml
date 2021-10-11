@@ -13,6 +13,10 @@ inputs:
     required: false
     description: 'The architecture of the SDK: x86_64 or i686'
     default: 'x86_64'
+  msys:
+    required: false
+    description: 'Whether to start in MSYS mode (defaults to false)'
+    default: 'false'
   path:
     required: false
     description: 'Where to write the SDK files'
