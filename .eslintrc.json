@@ -9,6 +9,7 @@
     },
     "rules": {
       "eslint-comments/no-use": "off",
+      "filenames/match-regex": [2, "^[a-z_]+(\\.test)?$", true],
       "import/no-namespace": "off",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "off",
