@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
-import process from 'process'
-import {get} from './src/downloader'
 import {restoreCache, saveCache} from '@actions/cache'
+import {get} from './src/downloader'
+import process from 'process'
 
 async function run(): Promise<void> {
   try {

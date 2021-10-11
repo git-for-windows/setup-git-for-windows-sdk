@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
-import {statSync} from 'fs'
-import * as process from 'process'
 import * as child_process from 'child_process'
 import * as path from 'path'
+import * as process from 'process'
+import {statSync} from 'fs'
 
 async function runAction(
   options?: child_process.SpawnOptionsWithoutStdio

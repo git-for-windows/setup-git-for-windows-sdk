@@ -1,6 +1,6 @@
+import fetch from 'node-fetch'
 import {get} from '../src/downloader'
 import {mocked} from 'ts-jest/utils'
-import fetch from 'node-fetch'
 
 const buildIdResponse = {
   count: 1,
