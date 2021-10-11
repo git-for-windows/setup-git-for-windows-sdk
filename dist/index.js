@@ -274,7 +274,8 @@ function unpackTarXZInZipFromURL(url, outputDirectory, verbose = false) {
                 }
             });
         });
-        yield fs_1.default.promises.rm(tmp, { recursive: true });
+        yield fs_1.default.promises.unlink(zipPath);
+        yield fs_1.default.promises.rmdir(tmp);
     });
 }
 function get(flavor, architecture) {
