@@ -178,7 +178,8 @@ async function unpackTarXZInZipFromURL(
       }
     })
   })
-  await fs.promises.rm(tmp, {recursive: true})
+  await fs.promises.unlink(zipPath)
+  await fs.promises.rmdir(tmp)
 }
 
 export async function get(
