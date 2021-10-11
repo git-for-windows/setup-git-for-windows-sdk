@@ -70,7 +70,7 @@ By default, this Action prints a line whenever 250 items were extracted (this do
 
 To accelerate this Action, artifacts are cached once downloaded. This can be turned off by setting the input parameter `cache` to `false`.
 
-In practice, caching the `full` artifacts does not provide much of a speed-up. Instead, it slows it down by adding several minutes during with the artifact is cached. Therefore, caching is disabled for the `full` artifacts by default, corresponding to `cache: auto`.
+In practice, caching the `full` artifacts does not provide much of a speed-up. Instead, it slows it down by spending extra minutes on caching the artifact. Therefore, caching is disabled for the `full` artifacts by default, corresponding to `cache: auto`.
 
 ## Developing _this_ Action
 

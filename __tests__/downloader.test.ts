@@ -1,6 +1,6 @@
+import fetch from 'node-fetch'
 import {get} from '../src/downloader'
 import {mocked} from 'ts-jest/utils'
-import fetch from 'node-fetch'
 
 const buildIdResponse = {
   count: 1,
@@ -19,8 +19,7 @@ const buildIdResponse = {
       queueTime: '2021-02-16T03:11:20.8026424Z',
       startTime: '2021-02-16T03:11:35.5385517Z',
       finishTime: '2021-02-16T03:42:07.4413436Z',
-      url:
-        'https://dev.azure.com/Git-for-Windows/f3317b6a-fa67-40d4-9a33-b652e06943df/_apis/build/Builds/71000',
+      url: 'https://dev.azure.com/Git-for-Windows/f3317b6a-fa67-40d4-9a33-b652e06943df/_apis/build/Builds/71000',
       definition: [Object],
       project: [Object],
       uri: 'vstfs:///Build/Build/71000',

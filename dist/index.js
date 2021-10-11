@@ -39,9 +39,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
-const process_1 = __importDefault(__nccwpck_require__(1765));
-const downloader_1 = __nccwpck_require__(7511);
 const cache_1 = __nccwpck_require__(7799);
+const downloader_1 = __nccwpck_require__(7511);
+const process_1 = __importDefault(__nccwpck_require__(1765));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -52,6 +52,7 @@ function run() {
             const flavor = core.getInput('flavor');
             const architecture = core.getInput('architecture');
             const verbose = core.getInput('verbose');
+            const msysMode = core.getInput('msys') === 'true';
             const { artifactName, download, id } = yield (0, downloader_1.get)(flavor, architecture);
             const outputDirectory = core.getInput('path') || `C:/${artifactName}`;
             let useCache;
@@ -88,11 +89,17 @@ function run() {
                     core.warning(`Failed to cache ${id}: ${e instanceof Error ? e.message : e}`);
                 }
             }
-            // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
-            core.addPath(`${outputDirectory}/usr/bin/core_perl`);
-            core.addPath(`${outputDirectory}/usr/bin`);
-            const msystem = architecture === 'i686' ? 'MINGW32' : 'MINGW64';
-            core.addPath(`${outputDirectory}/${msystem.toLocaleLowerCase()}/bin`);
+            const mingw = architecture === 'i686' ? 'MINGW32' : 'MINGW64';
+            const msystem = msysMode ? 'MSYS' : mingw;
+            const binPaths = [
+                // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
+                '/usr/bin/core_perl',
+                '/usr/bin',
+                `/${mingw.toLocaleLowerCase()}/bin`
+            ];
+            for (const binPath of msysMode ? binPaths.reverse() : binPaths) {
+                core.addPath(`${outputDirectory}${binPath}`);
+            }
             core.exportVariable('MSYSTEM', msystem);
             if (!('LANG' in process_1.default.env) &&
                 !('LC_ALL' in process_1.default.env) &&
@@ -129,12 +136,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.get = void 0;
-const fs_1 = __importDefault(__nccwpck_require__(5747));
-const https_1 = __importDefault(__nccwpck_require__(7211));
-const unzipper_1 = __importDefault(__nccwpck_require__(1639));
-const child_process_1 = __nccwpck_require__(3129);
 const path_1 = __nccwpck_require__(5622);
 const node_fetch_retry_1 = __importDefault(__nccwpck_require__(3006));
+const fs_1 = __importDefault(__nccwpck_require__(5747));
+const https_1 = __importDefault(__nccwpck_require__(7211));
+const child_process_1 = __nccwpck_require__(3129);
+const unzipper_1 = __importDefault(__nccwpck_require__(1639));
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin';
 const gitForWindowsMINGW64BinPath = 'C:/Program Files/Git/mingw64/bin';
 function fetchJSONFromURL(url) {
@@ -954,7 +961,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const http_client_1 = __nccwpck_require__(9925);
-const storage_blob_1 = __nccwpck_require__(988);
+const storage_blob_1 = __nccwpck_require__(4100);
 const buffer = __importStar(__nccwpck_require__(4293));
 const fs = __importStar(__nccwpck_require__(5747));
 const stream = __importStar(__nccwpck_require__(2413));
@@ -20667,7 +20674,7 @@ var __createBinding;
 
 /***/ }),
 
-/***/ 988:
+/***/ 4100:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -62192,7 +62199,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 /***/ }),
 
-/***/ 7356:
+/***/ 8173:
 /***/ ((module) => {
 
 "use strict";
@@ -62225,7 +62232,7 @@ function clone (obj) {
 var fs = __nccwpck_require__(5747)
 var polyfills = __nccwpck_require__(263)
 var legacy = __nccwpck_require__(3086)
-var clone = __nccwpck_require__(7356)
+var clone = __nccwpck_require__(8173)
 
 var util = __nccwpck_require__(1669)
 
@@ -73893,7 +73900,7 @@ module.exports = PullStream;
 
 module.exports = Extract;
 
-var Parse = __nccwpck_require__(4100);
+var Parse = __nccwpck_require__(358);
 var Writer = __nccwpck_require__(7158).Writer;
 var path = __nccwpck_require__(5622);
 var stream = __nccwpck_require__(2413);
@@ -73950,7 +73957,7 @@ function Extract (opts) {
 
 /***/ }),
 
-/***/ 4100:
+/***/ 358:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 var util = __nccwpck_require__(1669);
@@ -74307,7 +74314,7 @@ module.exports = function(extraField, vars) {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 var Stream = __nccwpck_require__(2413);
-var Parse = __nccwpck_require__(4100);
+var Parse = __nccwpck_require__(358);
 var duplexer2 = __nccwpck_require__(1932);
 var BufferStream = __nccwpck_require__(3319);
 
@@ -74379,7 +74386,7 @@ __nccwpck_require__(7329);
 __nccwpck_require__(6062);
 
 
-exports.Parse = __nccwpck_require__(4100);
+exports.Parse = __nccwpck_require__(358);
 exports.ParseOne = __nccwpck_require__(6716);
 exports.Extract = __nccwpck_require__(3919);
 exports.Open = __nccwpck_require__(5405);
@@ -76732,7 +76739,7 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 316:
+/***/ 7356:
 /***/ (function(module, __unused_webpack_exports, __nccwpck_require__) {
 
 // Generated by CoffeeScript 1.12.7
@@ -79596,7 +79603,7 @@ function wrappy (fn, cb) {
 
   XMLDocument = __nccwpck_require__(3730);
 
-  XMLDocumentCB = __nccwpck_require__(316);
+  XMLDocumentCB = __nccwpck_require__(7356);
 
   XMLStringWriter = __nccwpck_require__(5913);
 

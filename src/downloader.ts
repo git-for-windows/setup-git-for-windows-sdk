@@ -1,10 +1,10 @@
-import fs from 'fs'
-import https from 'https'
 import {Readable} from 'stream'
-import unzipper from 'unzipper'
-import {spawn} from 'child_process'
 import {delimiter} from 'path'
 import fetch from '@adobe/node-fetch-retry'
+import fs from 'fs'
+import https from 'https'
+import {spawn} from 'child_process'
+import unzipper from 'unzipper'
 
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
 const gitForWindowsMINGW64BinPath = 'C:/Program Files/Git/mingw64/bin'
@@ -27,7 +27,7 @@ function mkdirp(directoryPath: string): void {
     }
     throw new Error(`${directoryPath} exists, but is not a directory`)
   } catch (e) {
-    if (!(e instanceof Object) || (e as any).code !== 'ENOENT') {
+    if (!(e instanceof Object) || (e as {code: string}).code !== 'ENOENT') {
       throw e
     }
   }
