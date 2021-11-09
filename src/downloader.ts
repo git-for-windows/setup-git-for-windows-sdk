@@ -16,7 +16,7 @@ async function fetchJSONFromURL<T>(url: string): Promise<T> {
       `Got code ${res.status}, URL: ${url}, message: ${res.statusText}`
     )
   }
-  return res.json()
+  return (await res.json()) as T
 }
 
 function mkdirp(directoryPath: string): void {
