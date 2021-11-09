@@ -150,7 +150,7 @@ function fetchJSONFromURL(url) {
         if (res.status !== 200) {
             throw new Error(`Got code ${res.status}, URL: ${url}, message: ${res.statusText}`);
         }
-        return res.json();
+        return (yield res.json());
     });
 }
 function mkdirp(directoryPath) {
