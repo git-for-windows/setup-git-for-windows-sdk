@@ -16,6 +16,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run lint
+      - run: npm run format && git diff-files
       - run: npm run test
       - run: npm run package
       - name: Verify that `dist/index.js` is up to date
