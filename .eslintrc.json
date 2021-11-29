@@ -14,6 +14,7 @@
     },
     "plugins": [
        "@typescript-eslint",
+       "anti-trojan-source",
        "jest"
     ],
     "rules": {
@@ -49,6 +50,7 @@
       "@typescript-eslint/semi": ["error", "never"],
       "@typescript-eslint/type-annotation-spacing": "error",
       "@typescript-eslint/unbound-method": "error",
+      "anti-trojan-source/no-bidi": "error",
       "camelcase": "off",
       "eslint-comments/no-use": "off",
       "filenames/match-regex": [2, "^[a-z_]+(\\.test|\\.d)?$", true],
