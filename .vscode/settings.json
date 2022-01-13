@@ -10,11 +10,11 @@
         "vstfs://.*"
     ],
     "cSpell.words": [
+        "artifactsize",
+        "autodrain",
         "Backoff",
         "MSYSTEM",
         "Pacman",
-        "artifactsize",
-        "autodrain",
         "unzipper",
         "vercel"
     ],
