@@ -61,3 +61,6 @@ jobs:
 
           # Verify that the locale is set, enabling `grep -P` to work
           test 123 = "$(printf '1248\n123\n' | grep -P '2(?!4)')"
+
+          # Verify that /dev/fd/<pid> works
+          test hello = "$(cat <(echo hello))"
