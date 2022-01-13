@@ -39,9 +39,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
-const cache_1 = __nccwpck_require__(7799);
 const downloader_1 = __nccwpck_require__(7511);
+const cache_1 = __nccwpck_require__(7799);
 const process_1 = __importDefault(__nccwpck_require__(7282));
+const child_process_1 = __nccwpck_require__(2081);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -106,6 +107,28 @@ function run() {
                 !('LC_CTYPE' in process_1.default.env)) {
                 core.exportVariable('LC_CTYPE', 'C.UTF-8');
             }
+            // ensure that /dev/fd/*, /dev/mqueue and friends exist
+            for (const path of ['/dev/mqueue', '/dev/shm']) {
+                (0, downloader_1.mkdirp)(`${outputDirectory}${path}`);
+            }
+            const ln = (linkPath, target) => {
+                const child = (0, child_process_1.spawnSync)('ln.exe', ['-s', target, linkPath], {
+                    cwd: outputDirectory,
+                    env: {
+                        MSYS: 'winsymlinks:sys'
+                    }
+                });
+                if (child.error)
+                    throw child.error;
+            };
+            for (const [linkPath, target] of Object.entries({
+                fd: 'fd',
+                stdin: 'fd/0',
+                stdout: 'fd/1',
+                stderr: 'fd/2'
+            })) {
+                ln(`/dev/${linkPath}`, `/proc/self/${target}`);
+            }
         }
         catch (error) {
             core.setFailed(error instanceof Error ? error.message : `${error}`);
@@ -135,7 +158,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.get = void 0;
+exports.get = exports.mkdirp = void 0;
 const path_1 = __nccwpck_require__(1017);
 const node_fetch_retry_1 = __importDefault(__nccwpck_require__(3006));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
@@ -168,6 +191,7 @@ function mkdirp(directoryPath) {
     }
     fs_1.default.mkdirSync(directoryPath, { recursive: true });
 }
+exports.mkdirp = mkdirp;
 function unzip(url, bytesToExtract, stripPrefix, outputDirectory, verbose, downloader) {
     return __awaiter(this, void 0, void 0, function* () {
         let progress = verbose === false
@@ -973,7 +997,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const http_client_1 = __nccwpck_require__(9925);
-const storage_blob_1 = __nccwpck_require__(4100);
+const storage_blob_1 = __nccwpck_require__(988);
 const buffer = __importStar(__nccwpck_require__(4300));
 const fs = __importStar(__nccwpck_require__(7147));
 const stream = __importStar(__nccwpck_require__(2781));
@@ -14587,7 +14611,7 @@ exports.setLogLevel = setLogLevel;
 
 /***/ }),
 
-/***/ 4100:
+/***/ 988:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -55972,7 +55996,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 /***/ }),
 
-/***/ 8173:
+/***/ 7356:
 /***/ ((module) => {
 
 "use strict";
@@ -56005,7 +56029,7 @@ function clone (obj) {
 var fs = __nccwpck_require__(7147)
 var polyfills = __nccwpck_require__(263)
 var legacy = __nccwpck_require__(3086)
-var clone = __nccwpck_require__(8173)
+var clone = __nccwpck_require__(7356)
 
 var util = __nccwpck_require__(3837)
 
@@ -69836,7 +69860,7 @@ module.exports = PullStream;
 
 module.exports = Extract;
 
-var Parse = __nccwpck_require__(358);
+var Parse = __nccwpck_require__(4100);
 var Writer = (__nccwpck_require__(7158).Writer);
 var path = __nccwpck_require__(1017);
 var stream = __nccwpck_require__(2781);
@@ -69893,7 +69917,7 @@ function Extract (opts) {
 
 /***/ }),
 
-/***/ 358:
+/***/ 4100:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 var util = __nccwpck_require__(3837);
@@ -70250,7 +70274,7 @@ module.exports = function(extraField, vars) {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 var Stream = __nccwpck_require__(2781);
-var Parse = __nccwpck_require__(358);
+var Parse = __nccwpck_require__(4100);
 var duplexer2 = __nccwpck_require__(1932);
 var BufferStream = __nccwpck_require__(3319);
 
@@ -70322,7 +70346,7 @@ __nccwpck_require__(7329);
 __nccwpck_require__(6062);
 
 
-exports.Parse = __nccwpck_require__(358);
+exports.Parse = __nccwpck_require__(4100);
 exports.ParseOne = __nccwpck_require__(6716);
 exports.Extract = __nccwpck_require__(3919);
 exports.Open = __nccwpck_require__(5405);
@@ -72677,7 +72701,7 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 7356:
+/***/ 316:
 /***/ (function(module, __unused_webpack_exports, __nccwpck_require__) {
 
 // Generated by CoffeeScript 1.12.7
@@ -75541,7 +75565,7 @@ function wrappy (fn, cb) {
 
   XMLDocument = __nccwpck_require__(3730);
 
-  XMLDocumentCB = __nccwpck_require__(7356);
+  XMLDocumentCB = __nccwpck_require__(316);
 
   XMLStringWriter = __nccwpck_require__(5913);
 
