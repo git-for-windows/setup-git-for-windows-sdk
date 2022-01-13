@@ -13,10 +13,12 @@
         "artifactsize",
         "autodrain",
         "Backoff",
+        "mqueue",
         "MSYSTEM",
         "Pacman",
         "unzipper",
-        "vercel"
+        "vercel",
+        "winsymlinks"
     ],
     "git.ignoreLimitWarning": true
 }

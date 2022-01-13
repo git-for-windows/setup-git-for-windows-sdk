@@ -1,7 +1,8 @@
 import * as core from '@actions/core'
+import {get, mkdirp} from './src/downloader'
 import {restoreCache, saveCache} from '@actions/cache'
-import {get} from './src/downloader'
 import process from 'process'
+import {spawnSync} from 'child_process'
 
 async function run(): Promise<void> {
   try {
@@ -79,6 +80,29 @@ async function run(): Promise<void> {
       !('LC_CTYPE' in process.env)
     ) {
       core.exportVariable('LC_CTYPE', 'C.UTF-8')
+    }
+
+    // ensure that /dev/fd/*, /dev/mqueue and friends exist
+    for (const path of ['/dev/mqueue', '/dev/shm']) {
+      mkdirp(`${outputDirectory}${path}`)
+    }
+
+    const ln = (linkPath: string, target: string): void => {
+      const child = spawnSync('ln.exe', ['-s', target, linkPath], {
+        cwd: outputDirectory,
+        env: {
+          MSYS: 'winsymlinks:sys'
+        }
+      })
+      if (child.error) throw child.error
+    }
+    for (const [linkPath, target] of Object.entries({
+      fd: 'fd',
+      stdin: 'fd/0',
+      stdout: 'fd/1',
+      stderr: 'fd/2'
+    })) {
+      ln(`/dev/${linkPath}`, `/proc/self/${target}`)
     }
   } catch (error) {
     core.setFailed(error instanceof Error ? error.message : `${error}`)

@@ -19,7 +19,7 @@ async function fetchJSONFromURL<T>(url: string): Promise<T> {
   return (await res.json()) as T
 }
 
-function mkdirp(directoryPath: string): void {
+export function mkdirp(directoryPath: string): void {
   try {
     const stat = fs.statSync(directoryPath)
     if (stat.isDirectory()) {
