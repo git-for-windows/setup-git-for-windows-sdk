@@ -23,6 +23,10 @@ do
     out="$(git tag --verify $tag 2>&1)" ||
     die "$out$LF${LF}Tag $tag is not signed/signature cannot be verified"
 
+    test 0 = $(git rev-list --count ...main) || die 'HEAD is not up to date with `main`'
+    test 0 = $(git rev-list --count ...origin/main) ||
+    echo 'warning: HEAD is not up to date with `origin/main`' >&2
+
     regex="^  \"version\": \"$(echo "${tag#v}" | sed 's/\./\\./g')\",\$"
     substitute="s/^\\(  \"version\": \"\\).*\",\$/\\1${tag#v}\",/"
     git grep -q "$regex" refs/tags/$tag -- package.json || {
