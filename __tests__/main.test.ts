@@ -58,5 +58,15 @@ if (process.env.RUN_NETWORK_TESTS !== 'true') {
     expect(
       statSync.bind(null, `${outputDirectory}/mingw64/bin/gcc.exe`)
     ).not.toThrow()
+
+    const hello = child_process.spawnSync(
+      'usr\\bin\\bash.exe',
+      ['-lc', 'cat <(echo hello)'],
+      {
+        cwd: outputDirectory
+      }
+    )
+    expect(hello.stderr.toString()).toBe('')
+    expect(hello.stdout.toString()).toBe('hello\n')
   })
 }

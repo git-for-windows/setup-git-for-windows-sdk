@@ -10,13 +10,15 @@
         "vstfs://.*"
     ],
     "cSpell.words": [
-        "Backoff",
-        "MSYSTEM",
-        "Pacman",
         "artifactsize",
         "autodrain",
+        "Backoff",
+        "mqueue",
+        "MSYSTEM",
+        "Pacman",
         "unzipper",
-        "vercel"
+        "vercel",
+        "winsymlinks"
     ],
     "git.ignoreLimitWarning": true
 }
