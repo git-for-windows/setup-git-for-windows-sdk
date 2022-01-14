@@ -23,8 +23,10 @@ do
     out="$(git tag --verify $tag 2>&1)" ||
     die "$out$LF${LF}Tag $tag is not signed/signature cannot be verified"
 
-    git grep -q '"version": "'"${tag#v}"'"' refs/tags/$tag -- package.json || {
-        sed 's/\("version": "\)[^"]*/\1'"${tag#v}"/ <package.json >package.json.new &&
+    regex="^  \"version\": \"$(echo "${tag#v}" | sed 's/\./\\./g')\",\$"
+    substitute="s/^\\(  \"version\": \"\\).*\",\$/\\1${tag#v}\",/"
+    git grep -q "$regex" refs/tags/$tag -- package.json || {
+        sed "$substitute" <package.json >package.json.new &&
         mv -f package.json.new package.json
         die "package.json did not reflect $tag; It was adjusted."
         exit 1
