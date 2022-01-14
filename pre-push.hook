@@ -13,7 +13,9 @@ LF='
 '
 
 git diff --no-index --quiet pre-push.hook "$(git rev-parse --git-path hooks/pre-push)" ||
-die 'The `pre-push` hook is not up to date with `pre-push.hook`'
+die 'The `pre-push` hook is not up to date with `pre-push.hook`. Please update:
+
+	cp pre-push.hook .git/hooks/pre-push'
 
 # Verify that any tagged version is reflected in its `package.json`
 for tag in $(git for-each-ref --format='%(refname:short)' --points-at=HEAD 'refs/tags/v[0-9]*')
