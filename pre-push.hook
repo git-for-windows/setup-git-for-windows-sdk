@@ -28,7 +28,16 @@ do
     git grep -q "$regex" refs/tags/$tag -- package.json || {
         sed "$substitute" <package.json >package.json.new &&
         mv -f package.json.new package.json
+        sed "$substitute" <package-lock.json >package-lock.json.new &&
+        mv -f package-lock.json.new package-lock.json
         die "package.json did not reflect $tag; It was adjusted."
+        exit 1
+    }
+
+    git grep -q "$regex" refs/tags/$tag -- package-lock.json || {
+        sed "$substitute" <package-lock.json >package-lock.json.new &&
+        mv -f package-lock.json.new package-lock.json
+        die "package-lock.json did not reflect $tag; It was adjusted."
         exit 1
     }
 done
