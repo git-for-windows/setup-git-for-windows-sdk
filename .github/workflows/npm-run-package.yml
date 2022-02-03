@@ -17,10 +17,12 @@ permissions:
 jobs:
   npm-run-package-and-push: # make sure build/ci work properly
     runs-on: ubuntu-latest
+    environment: git-for-windows-ci-push
     steps:
       - uses: actions/checkout@v2
         with:
           ref: ${{ inputs.branch }}
+          token: ${{ secrets.GIT_FOR_WINDOWS_CI_PUSH }}
       - run: npm ci
       - run: npm run build
       - run: npm run lint
