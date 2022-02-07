@@ -19,7 +19,7 @@ on:
 jobs:
   npm-run-package-and-push: # make sure build/ci work properly
     runs-on: ubuntu-latest
-    if: ${{ github.event_name }} == 'workflow_dispatch' || ${{ github.actor }} == 'dependabot[bot]' || ${{ github.actor }} == 'dscho'
+    if: ${{ github.event_name }} == 'workflow_dispatch' || ${{ github.event.pull_request.head.repo.owner.login }} == 'git-for-windows'
     environment: git-for-windows-ci-push
     steps:
       - uses: actions/checkout@v2
