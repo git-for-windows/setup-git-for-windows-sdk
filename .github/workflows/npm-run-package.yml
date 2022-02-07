@@ -11,9 +11,6 @@ on:
         required: false
         type: string
 
-permissions:
-  contents: write
-
 jobs:
   npm-run-package-and-push: # make sure build/ci work properly
     runs-on: ubuntu-latest
