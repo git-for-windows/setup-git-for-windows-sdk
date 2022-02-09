@@ -6256,26 +6256,53 @@ exports.isTokenCredential = isTokenCredential;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
 var uuid = __nccwpck_require__(3415);
-var tough = __nccwpck_require__(7372);
+var util = __nccwpck_require__(3837);
+var tslib = __nccwpck_require__(2107);
+var xml2js = __nccwpck_require__(6189);
+var abortController = __nccwpck_require__(2557);
+var logger$1 = __nccwpck_require__(3233);
+var coreAuth = __nccwpck_require__(9645);
+var os = __nccwpck_require__(2037);
 var http = __nccwpck_require__(3685);
 var https = __nccwpck_require__(5687);
-var node_fetch = _interopDefault(__nccwpck_require__(467));
-var abortController = __nccwpck_require__(2557);
-var FormData = _interopDefault(__nccwpck_require__(6279));
-var util = __nccwpck_require__(3837);
-var url = __nccwpck_require__(7310);
-var stream = __nccwpck_require__(2781);
-var logger$1 = __nccwpck_require__(3233);
+var tough = __nccwpck_require__(7372);
 var tunnel = __nccwpck_require__(4294);
-var tslib = __nccwpck_require__(2107);
-var coreAuth = __nccwpck_require__(9645);
-var xml2js = __nccwpck_require__(6189);
-var os = __nccwpck_require__(2037);
+var stream = __nccwpck_require__(2781);
+var FormData = __nccwpck_require__(6279);
+var node_fetch = __nccwpck_require__(467);
 var coreTracing = __nccwpck_require__(4175);
+var url = __nccwpck_require__(7310);
 __nccwpck_require__(6821);
+
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+function _interopNamespace(e) {
+    if (e && e.__esModule) return e;
+    var n = Object.create(null);
+    if (e) {
+        Object.keys(e).forEach(function (k) {
+            if (k !== 'default') {
+                var d = Object.getOwnPropertyDescriptor(e, k);
+                Object.defineProperty(n, k, d.get ? d : {
+                    enumerable: true,
+                    get: function () { return e[k]; }
+                });
+            }
+        });
+    }
+    n["default"] = e;
+    return Object.freeze(n);
+}
+
+var xml2js__namespace = /*#__PURE__*/_interopNamespace(xml2js);
+var os__namespace = /*#__PURE__*/_interopNamespace(os);
+var http__namespace = /*#__PURE__*/_interopNamespace(http);
+var https__namespace = /*#__PURE__*/_interopNamespace(https);
+var tough__namespace = /*#__PURE__*/_interopNamespace(tough);
+var tunnel__namespace = /*#__PURE__*/_interopNamespace(tunnel);
+var FormData__default = /*#__PURE__*/_interopDefaultLegacy(FormData);
+var node_fetch__default = /*#__PURE__*/_interopDefaultLegacy(node_fetch);
 
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
@@ -6324,7 +6351,7 @@ class HttpHeaders {
     set(headerName, headerValue) {
         this._headersMap[getHeaderKey(headerName)] = {
             name: headerName,
-            value: headerValue.toString()
+            value: headerValue.toString(),
         };
     }
     /**
@@ -6356,12 +6383,7 @@ class HttpHeaders {
      * Get the headers that are contained this collection as an object.
      */
     rawHeaders() {
-        const result = {};
-        for (const headerKey in this._headersMap) {
-            const header = this._headersMap[headerKey];
-            result[header.name.toLowerCase()] = header.value;
-        }
-        return result;
+        return this.toJson({ preserveCase: true });
     }
     /**
      * Get the headers that are contained in this collection as an array.
@@ -6398,14 +6420,27 @@ class HttpHeaders {
     /**
      * Get the JSON object representation of this HTTP header collection.
      */
-    toJson() {
-        return this.rawHeaders();
+    toJson(options = {}) {
+        const result = {};
+        if (options.preserveCase) {
+            for (const headerKey in this._headersMap) {
+                const header = this._headersMap[headerKey];
+                result[header.name] = header.value;
+            }
+        }
+        else {
+            for (const headerKey in this._headersMap) {
+                const header = this._headersMap[headerKey];
+                result[getHeaderKey(header.name)] = header.value;
+            }
+        }
+        return result;
     }
     /**
      * Get the string representation of this HTTP header collection.
      */
     toString() {
-        return JSON.stringify(this.toJson());
+        return JSON.stringify(this.toJson({ preserveCase: true }));
     }
     /**
      * Create a deep clone/copy of this HttpHeaders collection.
@@ -6449,11 +6484,14 @@ function decodeString(value) {
 
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
+/**
+ * A set of constants used internally when processing requests.
+ */
 const Constants = {
     /**
      * The core-http version
      */
-    coreHttpVersion: "2.2.2",
+    coreHttpVersion: "2.2.4",
     /**
      * Specifies HTTP.
      */
@@ -6489,12 +6527,12 @@ const Constants = {
             POST: "POST",
             MERGE: "MERGE",
             HEAD: "HEAD",
-            PATCH: "PATCH"
+            PATCH: "PATCH",
         },
         StatusCodes: {
             TooManyRequests: 429,
-            ServiceUnavailable: 503
-        }
+            ServiceUnavailable: 503,
+        },
     },
     /**
      * Defines constants for use with HTTP headers.
@@ -6514,8 +6552,8 @@ const Constants = {
         /**
          * The UserAgent header.
          */
-        USER_AGENT: "User-Agent"
-    }
+        USER_AGENT: "User-Agent",
+    },
 };
 
 // Copyright (c) Microsoft Corporation.
@@ -6730,18 +6768,38 @@ function isObject(input) {
 }
 
 // Copyright (c) Microsoft Corporation.
+// This file contains utility code to serialize and deserialize network operations according to `OperationSpec` objects generated by AutoRest.TypeScript from OpenAPI specifications.
+/**
+ * Used to map raw response objects to final shapes.
+ * Helps packing and unpacking Dates and other encoded types that are not intrinsic to JSON.
+ * Also allows pulling values from headers, as well as inserting default values and constants.
+ */
 class Serializer {
-    constructor(modelMappers = {}, isXML) {
+    constructor(
+    /**
+     * The provided model mapper.
+     */
+    modelMappers = {}, 
+    /**
+     * Whether the contents are XML or not.
+     */
+    isXML) {
         this.modelMappers = modelMappers;
         this.isXML = isXML;
     }
+    /**
+     * Validates constraints, if any. This function will throw if the provided value does not respect those constraints.
+     * @param mapper - The definition of data models.
+     * @param value - The value.
+     * @param objectName - Name of the object. Used in the error messages.
+     */
     validateConstraints(mapper, value, objectName) {
         const failValidation = (constraintName, constraintValue) => {
             throw new Error(`"${objectName}" with value "${value}" should satisfy the constraint "${constraintName}": ${constraintValue}.`);
         };
         if (mapper.constraints && value != undefined) {
             const valueAsNumber = value;
-            const { ExclusiveMaximum, ExclusiveMinimum, InclusiveMaximum, InclusiveMinimum, MaxItems, MaxLength, MinItems, MinLength, MultipleOf, Pattern, UniqueItems } = mapper.constraints;
+            const { ExclusiveMaximum, ExclusiveMinimum, InclusiveMaximum, InclusiveMinimum, MaxItems, MaxLength, MinItems, MinLength, MultipleOf, Pattern, UniqueItems, } = mapper.constraints;
             if (ExclusiveMaximum != undefined && valueAsNumber >= ExclusiveMaximum) {
                 failValidation("ExclusiveMaximum", ExclusiveMaximum);
             }
@@ -6783,20 +6841,20 @@ class Serializer {
         }
     }
     /**
-     * Serialize the given object based on its metadata defined in the mapper
+     * Serialize the given object based on its metadata defined in the mapper.
      *
-     * @param mapper - The mapper which defines the metadata of the serializable object
-     * @param object - A valid Javascript object to be serialized
-     * @param objectName - Name of the serialized object
-     * @param options - additional options to deserialization
-     * @returns A valid serialized Javascript object
+     * @param mapper - The mapper which defines the metadata of the serializable object.
+     * @param object - A valid Javascript object to be serialized.
+     * @param objectName - Name of the serialized object.
+     * @param options - additional options to deserialization.
+     * @returns A valid serialized Javascript object.
      */
     serialize(mapper, object, objectName, options = {}) {
         var _a, _b, _c;
         const updatedOptions = {
             rootName: (_a = options.rootName) !== null && _a !== void 0 ? _a : "",
             includeRoot: (_b = options.includeRoot) !== null && _b !== void 0 ? _b : false,
-            xmlCharKey: (_c = options.xmlCharKey) !== null && _c !== void 0 ? _c : XML_CHARKEY
+            xmlCharKey: (_c = options.xmlCharKey) !== null && _c !== void 0 ? _c : XML_CHARKEY,
         };
         let payload = {};
         const mapperType = mapper.type.name;
@@ -6866,20 +6924,20 @@ class Serializer {
         return payload;
     }
     /**
-     * Deserialize the given object based on its metadata defined in the mapper
+     * Deserialize the given object based on its metadata defined in the mapper.
      *
-     * @param mapper - The mapper which defines the metadata of the serializable object
-     * @param responseBody - A valid Javascript entity to be deserialized
-     * @param objectName - Name of the deserialized object
+     * @param mapper - The mapper which defines the metadata of the serializable object.
+     * @param responseBody - A valid Javascript entity to be deserialized.
+     * @param objectName - Name of the deserialized object.
      * @param options - Controls behavior of XML parser and builder.
-     * @returns A valid deserialized Javascript object
+     * @returns A valid deserialized Javascript object.
      */
     deserialize(mapper, responseBody, objectName, options = {}) {
         var _a, _b, _c;
         const updatedOptions = {
             rootName: (_a = options.rootName) !== null && _a !== void 0 ? _a : "",
             includeRoot: (_b = options.includeRoot) !== null && _b !== void 0 ? _b : false,
-            xmlCharKey: (_c = options.xmlCharKey) !== null && _c !== void 0 ? _c : XML_CHARKEY
+            xmlCharKey: (_c = options.xmlCharKey) !== null && _c !== void 0 ? _c : XML_CHARKEY,
         };
         if (responseBody == undefined) {
             if (this.isXML && mapper.type.name === "Sequence" && !mapper.xmlIsWrapped) {
@@ -6978,9 +7036,7 @@ function bufferToBase64Url(buffer) {
     // Uint8Array to Base64.
     const str = encodeByteArray(buffer);
     // Base64 to Base64Url.
-    return trimEnd(str, "=")
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_");
+    return trimEnd(str, "=").replace(/\+/g, "-").replace(/\//g, "_");
 }
 function base64UrlToByteArray(str) {
     if (!str) {
@@ -7196,10 +7252,10 @@ function serializeDictionaryType(serializer, mapper, object, objectName, isXml, 
     return tempDictionary;
 }
 /**
- * Resolves the additionalProperties property from a referenced mapper
- * @param serializer - The serializer containing the entire set of mappers
- * @param mapper - The composite mapper to resolve
- * @param objectName - Name of the object being serialized
+ * Resolves the additionalProperties property from a referenced mapper.
+ * @param serializer - The serializer containing the entire set of mappers.
+ * @param mapper - The composite mapper to resolve.
+ * @param objectName - Name of the object being serialized.
  */
 function resolveAdditionalProperties(serializer, mapper, objectName) {
     const additionalProperties = mapper.type.additionalProperties;
@@ -7210,7 +7266,7 @@ function resolveAdditionalProperties(serializer, mapper, objectName) {
     return additionalProperties;
 }
 /**
- * Finds the mapper referenced by className
+ * Finds the mapper referenced by `className`.
  * @param serializer - The serializer containing the entire set of mappers
  * @param mapper - The composite mapper to resolve
  * @param objectName - Name of the object being serialized
@@ -7549,7 +7605,9 @@ function getPolymorphicDiscriminatorSafely(serializer, typeName) {
         serializer.modelMappers[typeName] &&
         serializer.modelMappers[typeName].type.polymorphicDiscriminator);
 }
-// TODO: why is this here?
+/**
+ * Utility function that serializes an object that might contain binary information into a plain object, array or a string.
+ */
 function serializeObject(toSerialize) {
     const castToSerialize = toSerialize;
     if (toSerialize == undefined)
@@ -7587,6 +7645,9 @@ function strEnum(o) {
     }
     return result;
 }
+/**
+ * String enum containing the string types of property mappers.
+ */
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 const MapperType = strEnum([
     "Base64Url",
@@ -7604,7 +7665,7 @@ const MapperType = strEnum([
     "String",
     "Stream",
     "TimeSpan",
-    "UnixTime"
+    "UnixTime",
 ]);
 
 // Copyright (c) Microsoft Corporation.
@@ -7866,9 +7927,6 @@ class WebResource {
         return result;
     }
 }
-
-// Copyright (c) Microsoft Corporation.
-const custom = util.inspect.custom;
 
 // Copyright (c) Microsoft Corporation.
 /**
@@ -8167,6 +8225,10 @@ class URLBuilder {
             }
         }
     }
+    /**
+     * Serializes the URL as a string.
+     * @returns the URL as a string.
+     */
     toString() {
         let result = "";
         if (this._scheme) {
@@ -8202,6 +8264,9 @@ class URLBuilder {
             this.setQuery(replaceAll(this.getQuery(), searchValue, replaceValue));
         }
     }
+    /**
+     * Parses a given string URL into a new {@link URLBuilder}.
+     */
     static parse(text) {
         const result = new URLBuilder();
         result.set(text, "SCHEME_OR_HOST");
@@ -8459,6 +8524,60 @@ function nextQuery(tokenizer) {
 }
 
 // Copyright (c) Microsoft Corporation.
+function createProxyAgent(requestUrl, proxySettings, headers) {
+    const host = URLBuilder.parse(proxySettings.host).getHost();
+    if (!host) {
+        throw new Error("Expecting a non-empty host in proxy settings.");
+    }
+    if (!isValidPort(proxySettings.port)) {
+        throw new Error("Expecting a valid port number in the range of [0, 65535] in proxy settings.");
+    }
+    const tunnelOptions = {
+        proxy: {
+            host: host,
+            port: proxySettings.port,
+            headers: (headers && headers.rawHeaders()) || {},
+        },
+    };
+    if (proxySettings.username && proxySettings.password) {
+        tunnelOptions.proxy.proxyAuth = `${proxySettings.username}:${proxySettings.password}`;
+    }
+    else if (proxySettings.username) {
+        tunnelOptions.proxy.proxyAuth = `${proxySettings.username}`;
+    }
+    const isRequestHttps = isUrlHttps(requestUrl);
+    const isProxyHttps = isUrlHttps(proxySettings.host);
+    const proxyAgent = {
+        isHttps: isRequestHttps,
+        agent: createTunnel(isRequestHttps, isProxyHttps, tunnelOptions),
+    };
+    return proxyAgent;
+}
+function isUrlHttps(url) {
+    const urlScheme = URLBuilder.parse(url).getScheme() || "";
+    return urlScheme.toLowerCase() === "https";
+}
+function createTunnel(isRequestHttps, isProxyHttps, tunnelOptions) {
+    if (isRequestHttps && isProxyHttps) {
+        return tunnel__namespace.httpsOverHttps(tunnelOptions);
+    }
+    else if (isRequestHttps && !isProxyHttps) {
+        return tunnel__namespace.httpsOverHttp(tunnelOptions);
+    }
+    else if (!isRequestHttps && isProxyHttps) {
+        return tunnel__namespace.httpOverHttps(tunnelOptions);
+    }
+    else {
+        return tunnel__namespace.httpOverHttp(tunnelOptions);
+    }
+}
+function isValidPort(port) {
+    // any port in 0-65535 range is valid (RFC 793) even though almost all implementations
+    // will reserve 0 for a specific purpose, and a range of numbers for ephemeral ports
+    return 0 <= port && port <= 65535;
+}
+
+// Copyright (c) Microsoft Corporation.
 const RedactedString = "REDACTED";
 const defaultAllowedHeaderNames = [
     "x-ms-client-request-id",
@@ -8498,7 +8617,7 @@ const defaultAllowedHeaderNames = [
     "Retry-After",
     "Server",
     "Transfer-Encoding",
-    "User-Agent"
+    "User-Agent",
 ];
 const defaultAllowedQueryParameters = ["api-version"];
 class Sanitizer {
@@ -8592,7 +8711,13 @@ class Sanitizer {
 }
 
 // Copyright (c) Microsoft Corporation.
+const custom = util.inspect.custom;
+
+// Copyright (c) Microsoft Corporation.
 const errorSanitizer = new Sanitizer();
+/**
+ * An error resulting from an HTTP request to a service endpoint.
+ */
 class RestError extends Error {
     constructor(message, code, statusCode, request, response) {
         super(message);
@@ -8610,13 +8735,22 @@ class RestError extends Error {
         return `RestError: ${this.message} \n ${errorSanitizer.sanitize(this)}`;
     }
 }
+/**
+ * A constant string to identify errors that may arise when making an HTTP request that indicates an issue with the transport layer (e.g. the hostname of the URL cannot be resolved via DNS.)
+ */
 RestError.REQUEST_SEND_ERROR = "REQUEST_SEND_ERROR";
+/**
+ * A constant string to identify errors that may arise from parsing an incoming HTTP response. Usually indicates a malformed HTTP body, such as an encoded JSON payload that is incomplete.
+ */
 RestError.PARSE_ERROR = "PARSE_ERROR";
 
 // Copyright (c) Microsoft Corporation.
 const logger = logger$1.createClientLogger("core-http");
 
 // Copyright (c) Microsoft Corporation.
+function getCachedAgent(isHttps, agentCache) {
+    return isHttps ? agentCache.httpsAgent : agentCache.httpAgent;
+}
 class ReportTransform extends stream.Transform {
     constructor(progressCallback) {
         super();
@@ -8630,7 +8764,44 @@ class ReportTransform extends stream.Transform {
         callback(undefined);
     }
 }
-class FetchHttpClient {
+function isReadableStream(body) {
+    return body && typeof body.pipe === "function";
+}
+function isStreamComplete(stream, aborter) {
+    return new Promise((resolve) => {
+        stream.once("close", () => {
+            aborter === null || aborter === void 0 ? void 0 : aborter.abort();
+            resolve();
+        });
+        stream.once("end", resolve);
+        stream.once("error", resolve);
+    });
+}
+/**
+ * Transforms a set of headers into the key/value pair defined by {@link HttpHeadersLike}
+ */
+function parseHeaders(headers) {
+    const httpHeaders = new HttpHeaders();
+    headers.forEach((value, key) => {
+        httpHeaders.set(key, value);
+    });
+    return httpHeaders;
+}
+/**
+ * An HTTP client that uses `node-fetch`.
+ */
+class NodeFetchHttpClient {
+    constructor() {
+        // a mapping of proxy settings string `${host}:${port}:${username}:${password}` to agent
+        this.proxyAgentMap = new Map();
+        this.keepAliveAgents = {};
+        this.cookieJar = new tough__namespace.CookieJar(undefined, { looseMode: true });
+    }
+    /**
+     * Provides minimum viable error handling and the logic that executes the abstract methods.
+     * @param httpRequest - Object representing the outgoing HTTP request.
+     * @returns An object representing the incoming HTTP response.
+     */
     async sendRequest(httpRequest) {
         var _a;
         if (!httpRequest && typeof httpRequest !== "object") {
@@ -8656,7 +8827,7 @@ class FetchHttpClient {
         }
         if (httpRequest.formData) {
             const formData = httpRequest.formData;
-            const requestForm = new FormData();
+            const requestForm = new FormData__default["default"]();
             const appendFormValue = (key, value) => {
                 // value function probably returns a stream so we can provide a fresh stream on each retry
                 if (typeof value === "function") {
@@ -8726,7 +8897,7 @@ class FetchHttpClient {
                 readableStreamBody: streaming
                     ? response.body
                     : undefined,
-                bodyAsText: !streaming ? await response.text() : undefined
+                bodyAsText: !streaming ? await response.text() : undefined,
             };
             const onDownloadProgress = httpRequest.onDownloadProgress;
             if (onDownloadProgress) {
@@ -8780,94 +8951,6 @@ class FetchHttpClient {
             }
         }
     }
-}
-function isReadableStream(body) {
-    return body && typeof body.pipe === "function";
-}
-function isStreamComplete(stream, aborter) {
-    return new Promise((resolve) => {
-        stream.once("close", () => {
-            aborter === null || aborter === void 0 ? void 0 : aborter.abort();
-            resolve();
-        });
-        stream.once("end", resolve);
-        stream.once("error", resolve);
-    });
-}
-function parseHeaders(headers) {
-    const httpHeaders = new HttpHeaders();
-    headers.forEach((value, key) => {
-        httpHeaders.set(key, value);
-    });
-    return httpHeaders;
-}
-
-// Copyright (c) Microsoft Corporation.
-function createProxyAgent(requestUrl, proxySettings, headers) {
-    const host = URLBuilder.parse(proxySettings.host).getHost();
-    if (!host) {
-        throw new Error("Expecting a non-empty host in proxy settings.");
-    }
-    if (!isValidPort(proxySettings.port)) {
-        throw new Error("Expecting a valid port number in the range of [0, 65535] in proxy settings.");
-    }
-    const tunnelOptions = {
-        proxy: {
-            host: host,
-            port: proxySettings.port,
-            headers: (headers && headers.rawHeaders()) || {}
-        }
-    };
-    if (proxySettings.username && proxySettings.password) {
-        tunnelOptions.proxy.proxyAuth = `${proxySettings.username}:${proxySettings.password}`;
-    }
-    else if (proxySettings.username) {
-        tunnelOptions.proxy.proxyAuth = `${proxySettings.username}`;
-    }
-    const isRequestHttps = isUrlHttps(requestUrl);
-    const isProxyHttps = isUrlHttps(proxySettings.host);
-    const proxyAgent = {
-        isHttps: isRequestHttps,
-        agent: createTunnel(isRequestHttps, isProxyHttps, tunnelOptions)
-    };
-    return proxyAgent;
-}
-function isUrlHttps(url) {
-    const urlScheme = URLBuilder.parse(url).getScheme() || "";
-    return urlScheme.toLowerCase() === "https";
-}
-function createTunnel(isRequestHttps, isProxyHttps, tunnelOptions) {
-    if (isRequestHttps && isProxyHttps) {
-        return tunnel.httpsOverHttps(tunnelOptions);
-    }
-    else if (isRequestHttps && !isProxyHttps) {
-        return tunnel.httpsOverHttp(tunnelOptions);
-    }
-    else if (!isRequestHttps && isProxyHttps) {
-        return tunnel.httpOverHttps(tunnelOptions);
-    }
-    else {
-        return tunnel.httpOverHttp(tunnelOptions);
-    }
-}
-function isValidPort(port) {
-    // any port in 0-65535 range is valid (RFC 793) even though almost all implementations
-    // will reserve 0 for a specific purpose, and a range of numbers for ephemeral ports
-    return 0 <= port && port <= 65535;
-}
-
-// Copyright (c) Microsoft Corporation.
-function getCachedAgent(isHttps, agentCache) {
-    return isHttps ? agentCache.httpsAgent : agentCache.httpAgent;
-}
-class NodeFetchHttpClient extends FetchHttpClient {
-    constructor() {
-        super(...arguments);
-        // a mapping of proxy settings string `${host}:${port}:${username}:${password}` to agent
-        this.proxyAgentMap = new Map();
-        this.keepAliveAgents = {};
-        this.cookieJar = new tough.CookieJar(undefined, { looseMode: true });
-    }
     getOrCreateAgent(httpRequest) {
         var _a;
         const isHttps = isUrlHttps(httpRequest.url);
@@ -8899,24 +8982,30 @@ class NodeFetchHttpClient extends FetchHttpClient {
                 return agent;
             }
             const agentOptions = {
-                keepAlive: httpRequest.keepAlive
+                keepAlive: httpRequest.keepAlive,
             };
             if (isHttps) {
-                agent = this.keepAliveAgents.httpsAgent = new https.Agent(agentOptions);
+                agent = this.keepAliveAgents.httpsAgent = new https__namespace.Agent(agentOptions);
             }
             else {
-                agent = this.keepAliveAgents.httpAgent = new http.Agent(agentOptions);
+                agent = this.keepAliveAgents.httpAgent = new http__namespace.Agent(agentOptions);
             }
             return agent;
         }
         else {
-            return isHttps ? https.globalAgent : http.globalAgent;
+            return isHttps ? https__namespace.globalAgent : http__namespace.globalAgent;
         }
     }
+    /**
+     * Uses `node-fetch` to perform the request.
+     */
     // eslint-disable-next-line @azure/azure-sdk/ts-apisurface-standardized-verbs
     async fetch(input, init) {
-        return node_fetch(input, init);
+        return node_fetch__default["default"](input, init);
     }
+    /**
+     * Prepares a request based on the provided web resource.
+     */
     async prepareRequest(httpRequest) {
         const requestInit = {};
         if (this.cookieJar && !httpRequest.headers.get("Cookie")) {
@@ -8937,6 +9026,9 @@ class NodeFetchHttpClient extends FetchHttpClient {
         requestInit.compress = httpRequest.decompressResponse;
         return requestInit;
     }
+    /**
+     * Process an HTTP response. Handles persisting a cookie for subsequent requests if the response has a "Set-Cookie" header.
+     */
     async processRequest(operationResponse) {
         if (this.cookieJar) {
             const setCookieHeader = operationResponse.headers.get("Set-Cookie");
@@ -8957,6 +9049,11 @@ class NodeFetchHttpClient extends FetchHttpClient {
 }
 
 // Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+/**
+ * The different levels of logs that can be used with the HttpPipelineLogger.
+ */
+exports.HttpPipelineLogLevel = void 0;
 (function (HttpPipelineLogLevel) {
     /**
      * A log level that indicates that no logs will be logged.
@@ -8976,6 +9073,7 @@ class NodeFetchHttpClient extends FetchHttpClient {
     HttpPipelineLogLevel[HttpPipelineLogLevel["INFO"] = 3] = "INFO";
 })(exports.HttpPipelineLogLevel || (exports.HttpPipelineLogLevel = {}));
 
+// Copyright (c) Microsoft Corporation.
 /**
  * Converts an OperationOptions to a RequestOptionsBase
  *
@@ -8997,8 +9095,22 @@ function operationOptionsToRequestOptionsBase(opts) {
 }
 
 // Copyright (c) Microsoft Corporation.
+/**
+ * The base class from which all request policies derive.
+ */
 class BaseRequestPolicy {
-    constructor(_nextPolicy, _options) {
+    /**
+     * The main method to implement that manipulates a request/response.
+     */
+    constructor(
+    /**
+     * The next policy in the pipeline. Each policy is responsible for executing the next one if the request is to continue through the pipeline.
+     */
+    _nextPolicy, 
+    /**
+     * The options that can be passed to a given request policy.
+     */
+    _options) {
         this._nextPolicy = _nextPolicy;
         this._options = _options;
     }
@@ -9051,113 +9163,6 @@ class RequestPolicyOptions {
 }
 
 // Copyright (c) Microsoft Corporation.
-function logPolicy(loggingOptions = {}) {
-    return {
-        create: (nextPolicy, options) => {
-            return new LogPolicy(nextPolicy, options, loggingOptions);
-        }
-    };
-}
-class LogPolicy extends BaseRequestPolicy {
-    constructor(nextPolicy, options, { logger: logger$1 = logger.info, allowedHeaderNames = [], allowedQueryParameters = [] } = {}) {
-        super(nextPolicy, options);
-        this.logger = logger$1;
-        this.sanitizer = new Sanitizer({ allowedHeaderNames, allowedQueryParameters });
-    }
-    /**
-     * Header names whose values will be logged when logging is enabled. Defaults to
-     * Date, traceparent, x-ms-client-request-id, and x-ms-request id.  Any headers
-     * specified in this field will be added to that list.  Any other values will
-     * be written to logs as "REDACTED".
-     * @deprecated Pass these into the constructor instead.
-     */
-    get allowedHeaderNames() {
-        return this.sanitizer.allowedHeaderNames;
-    }
-    /**
-     * Header names whose values will be logged when logging is enabled. Defaults to
-     * Date, traceparent, x-ms-client-request-id, and x-ms-request id.  Any headers
-     * specified in this field will be added to that list.  Any other values will
-     * be written to logs as "REDACTED".
-     * @deprecated Pass these into the constructor instead.
-     */
-    set allowedHeaderNames(allowedHeaderNames) {
-        this.sanitizer.allowedHeaderNames = allowedHeaderNames;
-    }
-    /**
-     * Query string names whose values will be logged when logging is enabled. By default no
-     * query string values are logged.
-     * @deprecated Pass these into the constructor instead.
-     */
-    get allowedQueryParameters() {
-        return this.sanitizer.allowedQueryParameters;
-    }
-    /**
-     * Query string names whose values will be logged when logging is enabled. By default no
-     * query string values are logged.
-     * @deprecated Pass these into the constructor instead.
-     */
-    set allowedQueryParameters(allowedQueryParameters) {
-        this.sanitizer.allowedQueryParameters = allowedQueryParameters;
-    }
-    sendRequest(request) {
-        if (!this.logger.enabled)
-            return this._nextPolicy.sendRequest(request);
-        this.logRequest(request);
-        return this._nextPolicy.sendRequest(request).then((response) => this.logResponse(response));
-    }
-    logRequest(request) {
-        this.logger(`Request: ${this.sanitizer.sanitize(request)}`);
-    }
-    logResponse(response) {
-        this.logger(`Response status code: ${response.status}`);
-        this.logger(`Headers: ${this.sanitizer.sanitize(response.headers)}`);
-        return response;
-    }
-}
-
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
-/**
- * Get the path to this parameter's value as a dotted string (a.b.c).
- * @param parameter - The parameter to get the path string for.
- * @returns The path to this parameter's value as a dotted string.
- */
-function getPathStringFromParameter(parameter) {
-    return getPathStringFromParameterPath(parameter.parameterPath, parameter.mapper);
-}
-function getPathStringFromParameterPath(parameterPath, mapper) {
-    let result;
-    if (typeof parameterPath === "string") {
-        result = parameterPath;
-    }
-    else if (Array.isArray(parameterPath)) {
-        result = parameterPath.join(".");
-    }
-    else {
-        result = mapper.serializedName;
-    }
-    return result;
-}
-
-// Copyright (c) Microsoft Corporation.
-/**
- * Gets the list of status codes for streaming responses.
- * @internal
- */
-function getStreamResponseStatusCodes(operationSpec) {
-    const result = new Set();
-    for (const statusCode in operationSpec.responses) {
-        const operationResponse = operationSpec.responses[statusCode];
-        if (operationResponse.bodyMapper &&
-            operationResponse.bodyMapper.type.name === MapperType.Stream) {
-            result.add(Number(statusCode));
-        }
-    }
-    return result;
-}
-
-// Copyright (c) Microsoft Corporation.
 // Note: The reason we re-define all of the xml2js default settings (version 2.0) here is because the default settings object exposed
 // by the xm2js library is mutable. See https://github.com/Leonidas-from-XIV/node-xml2js/issues/536
 // By creating a new copy of the settings each time we instantiate the parser,
@@ -9189,18 +9194,18 @@ const xml2jsDefaultOptionsV2 = {
     xmldec: {
         version: "1.0",
         encoding: "UTF-8",
-        standalone: true
+        standalone: true,
     },
     doctype: undefined,
     renderOpts: {
         pretty: true,
         indent: "  ",
-        newline: "\n"
+        newline: "\n",
     },
     headless: false,
     chunkSize: 10000,
     emptyTag: "",
-    cdata: false
+    cdata: false,
 };
 // The xml2js settings for general XML parsing operations.
 const xml2jsParserSettings = Object.assign({}, xml2jsDefaultOptionsV2);
@@ -9209,7 +9214,7 @@ xml2jsParserSettings.explicitArray = false;
 const xml2jsBuilderSettings = Object.assign({}, xml2jsDefaultOptionsV2);
 xml2jsBuilderSettings.explicitArray = false;
 xml2jsBuilderSettings.renderOpts = {
-    pretty: false
+    pretty: false,
 };
 /**
  * Converts given JSON object to XML string
@@ -9220,7 +9225,7 @@ function stringifyXML(obj, opts = {}) {
     var _a;
     xml2jsBuilderSettings.rootName = opts.rootName;
     xml2jsBuilderSettings.charkey = (_a = opts.xmlCharKey) !== null && _a !== void 0 ? _a : XML_CHARKEY;
-    const builder = new xml2js.Builder(xml2jsBuilderSettings);
+    const builder = new xml2js__namespace.Builder(xml2jsBuilderSettings);
     return builder.buildObject(obj);
 }
 /**
@@ -9232,7 +9237,7 @@ function parseXML(str, opts = {}) {
     var _a;
     xml2jsParserSettings.explicitRoot = !!opts.includeRoot;
     xml2jsParserSettings.charkey = (_a = opts.xmlCharKey) !== null && _a !== void 0 ? _a : XML_CHARKEY;
-    const xmlParser = new xml2js.Parser(xml2jsParserSettings);
+    const xmlParser = new xml2js__namespace.Parser(xml2jsParserSettings);
     return new Promise((resolve, reject) => {
         if (!str) {
             reject(new Error("Document is empty"));
@@ -9259,7 +9264,7 @@ function deserializationPolicy(deserializationContentTypes, parsingOptions) {
     return {
         create: (nextPolicy, options) => {
             return new DeserializationPolicy(nextPolicy, options, deserializationContentTypes, parsingOptions);
-        }
+        },
     };
 }
 const defaultJsonContentTypes = ["application/json", "text/json"];
@@ -9267,8 +9272,8 @@ const defaultXmlContentTypes = ["application/xml", "application/atom+xml"];
 const DefaultDeserializationOptions = {
     expectedContentTypes: {
         json: defaultJsonContentTypes,
-        xml: defaultXmlContentTypes
-    }
+        xml: defaultXmlContentTypes,
+    },
 };
 /**
  * A RequestPolicy that will deserialize HTTP response bodies and headers as they pass through the
@@ -9286,7 +9291,7 @@ class DeserializationPolicy extends BaseRequestPolicy {
     }
     async sendRequest(request) {
         return this._nextPolicy.sendRequest(request).then((response) => deserializeResponseBody(this.jsonContentTypes, this.xmlContentTypes, response, {
-            xmlCharKey: this.xmlCharKey
+            xmlCharKey: this.xmlCharKey,
         }));
     }
 }
@@ -9319,12 +9324,20 @@ function shouldDeserializeResponse(parsedResponse) {
     }
     return result;
 }
+/**
+ * Given a particular set of content types to parse as either JSON or XML, consumes the HTTP response to produce the result object defined by the request's {@link OperationSpec}.
+ * @param jsonContentTypes - Response content types to parse the body as JSON.
+ * @param xmlContentTypes  - Response content types to parse the body as XML.
+ * @param response - HTTP Response from the pipeline.
+ * @param options  - Options to the serializer, mostly for configuring the XML parser if needed.
+ * @returns A parsed {@link HttpOperationResponse} object that can be returned by the {@link ServiceClient}.
+ */
 function deserializeResponseBody(jsonContentTypes, xmlContentTypes, response, options = {}) {
     var _a, _b, _c;
     const updatedOptions = {
         rootName: (_a = options.rootName) !== null && _a !== void 0 ? _a : "",
         includeRoot: (_b = options.includeRoot) !== null && _b !== void 0 ? _b : false,
-        xmlCharKey: (_c = options.xmlCharKey) !== null && _c !== void 0 ? _c : XML_CHARKEY
+        xmlCharKey: (_c = options.xmlCharKey) !== null && _c !== void 0 ? _c : XML_CHARKEY,
     };
     return parse(jsonContentTypes, xmlContentTypes, response, updatedOptions).then((parsedResponse) => {
         if (!shouldDeserializeResponse(parsedResponse)) {
@@ -9476,6 +9489,113 @@ function parse(jsonContentTypes, xmlContentTypes, operationResponse, opts) {
 }
 
 // Copyright (c) Microsoft Corporation.
+/**
+ * By default, HTTP connections are maintained for future requests.
+ */
+const DefaultKeepAliveOptions = {
+    enable: true,
+};
+/**
+ * Creates a policy that controls whether HTTP connections are maintained on future requests.
+ * @param keepAliveOptions - Keep alive options. By default, HTTP connections are maintained for future requests.
+ * @returns An instance of the {@link KeepAlivePolicy}
+ */
+function keepAlivePolicy(keepAliveOptions) {
+    return {
+        create: (nextPolicy, options) => {
+            return new KeepAlivePolicy(nextPolicy, options, keepAliveOptions || DefaultKeepAliveOptions);
+        },
+    };
+}
+/**
+ * KeepAlivePolicy is a policy used to control keep alive settings for every request.
+ */
+class KeepAlivePolicy extends BaseRequestPolicy {
+    /**
+     * Creates an instance of KeepAlivePolicy.
+     *
+     * @param nextPolicy -
+     * @param options -
+     * @param keepAliveOptions -
+     */
+    constructor(nextPolicy, options, keepAliveOptions) {
+        super(nextPolicy, options);
+        this.keepAliveOptions = keepAliveOptions;
+    }
+    /**
+     * Sends out request.
+     *
+     * @param request -
+     * @returns
+     */
+    async sendRequest(request) {
+        request.keepAlive = this.keepAliveOptions.enable;
+        return this._nextPolicy.sendRequest(request);
+    }
+}
+
+// Copyright (c) Microsoft Corporation.
+/**
+ * Methods that are allowed to follow redirects 301 and 302
+ */
+const allowedRedirect = ["GET", "HEAD"];
+const DefaultRedirectOptions = {
+    handleRedirects: true,
+    maxRetries: 20,
+};
+/**
+ * Creates a redirect policy, which sends a repeats the request to a new destination if a response arrives with a "location" header, and a status code between 300 and 307.
+ * @param maximumRetries - Maximum number of redirects to follow.
+ * @returns An instance of the {@link RedirectPolicy}
+ */
+function redirectPolicy(maximumRetries = 20) {
+    return {
+        create: (nextPolicy, options) => {
+            return new RedirectPolicy(nextPolicy, options, maximumRetries);
+        },
+    };
+}
+/**
+ * Resends the request to a new destination if a response arrives with a "location" header, and a status code between 300 and 307.
+ */
+class RedirectPolicy extends BaseRequestPolicy {
+    constructor(nextPolicy, options, maxRetries = 20) {
+        super(nextPolicy, options);
+        this.maxRetries = maxRetries;
+    }
+    sendRequest(request) {
+        return this._nextPolicy
+            .sendRequest(request)
+            .then((response) => handleRedirect(this, response, 0));
+    }
+}
+function handleRedirect(policy, response, currentRetries) {
+    const { request, status } = response;
+    const locationHeader = response.headers.get("location");
+    if (locationHeader &&
+        (status === 300 ||
+            (status === 301 && allowedRedirect.includes(request.method)) ||
+            (status === 302 && allowedRedirect.includes(request.method)) ||
+            (status === 303 && request.method === "POST") ||
+            status === 307) &&
+        (!policy.maxRetries || currentRetries < policy.maxRetries)) {
+        const builder = URLBuilder.parse(request.url);
+        builder.setPath(locationHeader);
+        request.url = builder.toString();
+        // POST request with Status code 303 should be converted into a
+        // redirected GET request if the redirect url is present in the location header
+        if (status === 303) {
+            request.method = "GET";
+            delete request.body;
+        }
+        return policy._nextPolicy
+            .sendRequest(request)
+            .then((res) => handleRedirect(policy, res, currentRetries + 1));
+    }
+    return Promise.resolve(response);
+}
+
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 const DEFAULT_CLIENT_RETRY_COUNT = 3;
 // intervals are in ms
@@ -9538,7 +9658,7 @@ function isDefined(thing) {
 }
 
 // Copyright (c) Microsoft Corporation.
-const StandardAbortMessage = "The operation was aborted.";
+const StandardAbortMessage$1 = "The operation was aborted.";
 /**
  * A wrapper for setTimeout that resolves a promise after delayInMs milliseconds.
  * @param delayInMs - The number of milliseconds to be delayed.
@@ -9553,7 +9673,7 @@ function delay(delayInMs, value, options) {
         let timer = undefined;
         let onAborted = undefined;
         const rejectOnAbort = () => {
-            return reject(new abortController.AbortError((options === null || options === void 0 ? void 0 : options.abortErrorMsg) ? options === null || options === void 0 ? void 0 : options.abortErrorMsg : StandardAbortMessage));
+            return reject(new abortController.AbortError((options === null || options === void 0 ? void 0 : options.abortErrorMsg) ? options === null || options === void 0 ? void 0 : options.abortErrorMsg : StandardAbortMessage$1));
         };
         const removeListeners = () => {
             if ((options === null || options === void 0 ? void 0 : options.abortSignal) && onAborted) {
@@ -9581,20 +9701,34 @@ function delay(delayInMs, value, options) {
 }
 
 // Copyright (c) Microsoft Corporation.
+/**
+ * Policy that retries the request as many times as configured for as long as the max retry time interval specified, each retry waiting longer to begin than the last time.
+ * @param retryCount - Maximum number of retries.
+ * @param retryInterval - Base time between retries.
+ * @param maxRetryInterval - Maximum time to wait between retries.
+ */
 function exponentialRetryPolicy(retryCount, retryInterval, maxRetryInterval) {
     return {
         create: (nextPolicy, options) => {
             return new ExponentialRetryPolicy(nextPolicy, options, retryCount, retryInterval, maxRetryInterval);
-        }
+        },
     };
 }
+/**
+ * Describes the Retry Mode type. Currently supporting only Exponential.
+ */
+exports.RetryMode = void 0;
 (function (RetryMode) {
+    /**
+     * Currently supported retry mode.
+     * Each time a retry happens, it will take exponentially more time than the last time.
+     */
     RetryMode[RetryMode["Exponential"] = 0] = "Exponential";
 })(exports.RetryMode || (exports.RetryMode = {}));
 const DefaultRetryOptions = {
     maxRetries: DEFAULT_CLIENT_RETRY_COUNT,
     retryDelayInMs: DEFAULT_CLIENT_RETRY_INTERVAL,
-    maxRetryDelayInMs: DEFAULT_CLIENT_MAX_RETRY_INTERVAL
+    maxRetryDelayInMs: DEFAULT_CLIENT_MAX_RETRY_INTERVAL,
 };
 /**
  * Instantiates a new "ExponentialRetryPolicyFilter" instance.
@@ -9619,11 +9753,11 @@ class ExponentialRetryPolicy extends BaseRequestPolicy {
     sendRequest(request) {
         return this._nextPolicy
             .sendRequest(request.clone())
-            .then((response) => retry(this, request, response))
-            .catch((error) => retry(this, request, error.response, undefined, error));
+            .then((response) => retry$1(this, request, response))
+            .catch((error) => retry$1(this, request, error.response, undefined, error));
     }
 }
-async function retry(policy, request, response, retryData, requestError) {
+async function retry$1(policy, request, response, retryData, requestError) {
     function shouldPolicyRetry(responseParam) {
         const statusCode = responseParam === null || responseParam === void 0 ? void 0 : responseParam.status;
         if (statusCode === 503 && (response === null || response === void 0 ? void 0 : response.headers.get(Constants.HeaderConstants.RETRY_AFTER))) {
@@ -9640,7 +9774,7 @@ async function retry(policy, request, response, retryData, requestError) {
     retryData = updateRetryData({
         retryInterval: policy.retryInterval,
         minRetryInterval: 0,
-        maxRetryInterval: policy.maxRetryInterval
+        maxRetryInterval: policy.maxRetryInterval,
     }, retryData, requestError);
     const isAborted = request.abortSignal && request.abortSignal.aborted;
     if (!isAborted && shouldRetry(policy.retryCount, shouldPolicyRetry, retryData, response)) {
@@ -9648,10 +9782,10 @@ async function retry(policy, request, response, retryData, requestError) {
         try {
             await delay(retryData.retryInterval);
             const res = await policy._nextPolicy.sendRequest(request.clone());
-            return retry(policy, request, res, retryData);
+            return retry$1(policy, request, res, retryData);
         }
         catch (err) {
-            return retry(policy, request, response, retryData, err);
+            return retry$1(policy, request, response, retryData, err);
         }
     }
     else if (isAborted || requestError || !response) {
@@ -9666,11 +9800,467 @@ async function retry(policy, request, response, retryData, requestError) {
 }
 
 // Copyright (c) Microsoft Corporation.
+/**
+ * Creates a policy that logs information about the outgoing request and the incoming responses.
+ * @param loggingOptions - Logging options.
+ * @returns An instance of the {@link LogPolicy}
+ */
+function logPolicy(loggingOptions = {}) {
+    return {
+        create: (nextPolicy, options) => {
+            return new LogPolicy(nextPolicy, options, loggingOptions);
+        },
+    };
+}
+/**
+ * A policy that logs information about the outgoing request and the incoming responses.
+ */
+class LogPolicy extends BaseRequestPolicy {
+    constructor(nextPolicy, options, { logger: logger$1 = logger.info, allowedHeaderNames = [], allowedQueryParameters = [], } = {}) {
+        super(nextPolicy, options);
+        this.logger = logger$1;
+        this.sanitizer = new Sanitizer({ allowedHeaderNames, allowedQueryParameters });
+    }
+    /**
+     * Header names whose values will be logged when logging is enabled. Defaults to
+     * Date, traceparent, x-ms-client-request-id, and x-ms-request id.  Any headers
+     * specified in this field will be added to that list.  Any other values will
+     * be written to logs as "REDACTED".
+     * @deprecated Pass these into the constructor instead.
+     */
+    get allowedHeaderNames() {
+        return this.sanitizer.allowedHeaderNames;
+    }
+    /**
+     * Header names whose values will be logged when logging is enabled. Defaults to
+     * Date, traceparent, x-ms-client-request-id, and x-ms-request id.  Any headers
+     * specified in this field will be added to that list.  Any other values will
+     * be written to logs as "REDACTED".
+     * @deprecated Pass these into the constructor instead.
+     */
+    set allowedHeaderNames(allowedHeaderNames) {
+        this.sanitizer.allowedHeaderNames = allowedHeaderNames;
+    }
+    /**
+     * Query string names whose values will be logged when logging is enabled. By default no
+     * query string values are logged.
+     * @deprecated Pass these into the constructor instead.
+     */
+    get allowedQueryParameters() {
+        return this.sanitizer.allowedQueryParameters;
+    }
+    /**
+     * Query string names whose values will be logged when logging is enabled. By default no
+     * query string values are logged.
+     * @deprecated Pass these into the constructor instead.
+     */
+    set allowedQueryParameters(allowedQueryParameters) {
+        this.sanitizer.allowedQueryParameters = allowedQueryParameters;
+    }
+    sendRequest(request) {
+        if (!this.logger.enabled)
+            return this._nextPolicy.sendRequest(request);
+        this.logRequest(request);
+        return this._nextPolicy.sendRequest(request).then((response) => this.logResponse(response));
+    }
+    logRequest(request) {
+        this.logger(`Request: ${this.sanitizer.sanitize(request)}`);
+    }
+    logResponse(response) {
+        this.logger(`Response status code: ${response.status}`);
+        this.logger(`Headers: ${this.sanitizer.sanitize(response.headers)}`);
+        return response;
+    }
+}
+
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+/**
+ * Get the path to this parameter's value as a dotted string (a.b.c).
+ * @param parameter - The parameter to get the path string for.
+ * @returns The path to this parameter's value as a dotted string.
+ */
+function getPathStringFromParameter(parameter) {
+    return getPathStringFromParameterPath(parameter.parameterPath, parameter.mapper);
+}
+function getPathStringFromParameterPath(parameterPath, mapper) {
+    let result;
+    if (typeof parameterPath === "string") {
+        result = parameterPath;
+    }
+    else if (Array.isArray(parameterPath)) {
+        result = parameterPath.join(".");
+    }
+    else {
+        result = mapper.serializedName;
+    }
+    return result;
+}
+
+// Copyright (c) Microsoft Corporation.
+/**
+ * Gets the list of status codes for streaming responses.
+ * @internal
+ */
+function getStreamResponseStatusCodes(operationSpec) {
+    const result = new Set();
+    for (const statusCode in operationSpec.responses) {
+        const operationResponse = operationSpec.responses[statusCode];
+        if (operationResponse.bodyMapper &&
+            operationResponse.bodyMapper.type.name === MapperType.Stream) {
+            result.add(Number(statusCode));
+        }
+    }
+    return result;
+}
+
+// Copyright (c) Microsoft Corporation.
+function getDefaultUserAgentKey() {
+    return Constants.HeaderConstants.USER_AGENT;
+}
+function getPlatformSpecificData() {
+    const runtimeInfo = {
+        key: "Node",
+        value: process.version,
+    };
+    const osInfo = {
+        key: "OS",
+        value: `(${os__namespace.arch()}-${os__namespace.type()}-${os__namespace.release()})`,
+    };
+    return [runtimeInfo, osInfo];
+}
+
+// Copyright (c) Microsoft Corporation.
+function getRuntimeInfo() {
+    const msRestRuntime = {
+        key: "core-http",
+        value: Constants.coreHttpVersion,
+    };
+    return [msRestRuntime];
+}
+function getUserAgentString(telemetryInfo, keySeparator = " ", valueSeparator = "/") {
+    return telemetryInfo
+        .map((info) => {
+        const value = info.value ? `${valueSeparator}${info.value}` : "";
+        return `${info.key}${value}`;
+    })
+        .join(keySeparator);
+}
+const getDefaultUserAgentHeaderName = getDefaultUserAgentKey;
+/**
+ * The default approach to generate user agents.
+ * Uses static information from this package, plus system information available from the runtime.
+ */
+function getDefaultUserAgentValue() {
+    const runtimeInfo = getRuntimeInfo();
+    const platformSpecificData = getPlatformSpecificData();
+    const userAgent = getUserAgentString(runtimeInfo.concat(platformSpecificData));
+    return userAgent;
+}
+/**
+ * Returns a policy that adds the user agent header to outgoing requests based on the given {@link TelemetryInfo}.
+ * @param userAgentData - Telemetry information.
+ * @returns A new {@link UserAgentPolicy}.
+ */
+function userAgentPolicy(userAgentData) {
+    const key = !userAgentData || userAgentData.key === undefined || userAgentData.key === null
+        ? getDefaultUserAgentKey()
+        : userAgentData.key;
+    const value = !userAgentData || userAgentData.value === undefined || userAgentData.value === null
+        ? getDefaultUserAgentValue()
+        : userAgentData.value;
+    return {
+        create: (nextPolicy, options) => {
+            return new UserAgentPolicy(nextPolicy, options, key, value);
+        },
+    };
+}
+/**
+ * A policy that adds the user agent header to outgoing requests based on the given {@link TelemetryInfo}.
+ */
+class UserAgentPolicy extends BaseRequestPolicy {
+    constructor(_nextPolicy, _options, headerKey, headerValue) {
+        super(_nextPolicy, _options);
+        this._nextPolicy = _nextPolicy;
+        this._options = _options;
+        this.headerKey = headerKey;
+        this.headerValue = headerValue;
+    }
+    sendRequest(request) {
+        this.addUserAgentHeader(request);
+        return this._nextPolicy.sendRequest(request);
+    }
+    /**
+     * Adds the user agent header to the outgoing request.
+     */
+    addUserAgentHeader(request) {
+        if (!request.headers) {
+            request.headers = new HttpHeaders();
+        }
+        if (!request.headers.get(this.headerKey) && this.headerValue) {
+            request.headers.set(this.headerKey, this.headerValue);
+        }
+    }
+}
+
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+/**
+ * The format that will be used to join an array of values together for a query parameter value.
+ */
+exports.QueryCollectionFormat = void 0;
+(function (QueryCollectionFormat) {
+    /**
+     * CSV: Each pair of segments joined by a single comma.
+     */
+    QueryCollectionFormat["Csv"] = ",";
+    /**
+     * SSV: Each pair of segments joined by a single space character.
+     */
+    QueryCollectionFormat["Ssv"] = " ";
+    /**
+     * TSV: Each pair of segments joined by a single tab character.
+     */
+    QueryCollectionFormat["Tsv"] = "\t";
+    /**
+     * Pipes: Each pair of segments joined by a single pipe character.
+     */
+    QueryCollectionFormat["Pipes"] = "|";
+    /**
+     * Denotes this is an array of values that should be passed to the server in multiple key/value pairs, e.g. `?queryParam=value1&queryParam=value2`
+     */
+    QueryCollectionFormat["Multi"] = "Multi";
+})(exports.QueryCollectionFormat || (exports.QueryCollectionFormat = {}));
+
+// Copyright (c) Microsoft Corporation.
+// Default options for the cycler if none are provided
+const DEFAULT_CYCLER_OPTIONS = {
+    forcedRefreshWindowInMs: 1000,
+    retryIntervalInMs: 3000,
+    refreshWindowInMs: 1000 * 60 * 2, // Start refreshing 2m before expiry
+};
+/**
+ * Converts an an unreliable access token getter (which may resolve with null)
+ * into an AccessTokenGetter by retrying the unreliable getter in a regular
+ * interval.
+ *
+ * @param getAccessToken - a function that produces a promise of an access
+ * token that may fail by returning null
+ * @param retryIntervalInMs - the time (in milliseconds) to wait between retry
+ * attempts
+ * @param timeoutInMs - the timestamp after which the refresh attempt will fail,
+ * throwing an exception
+ * @returns - a promise that, if it resolves, will resolve with an access token
+ */
+async function beginRefresh(getAccessToken, retryIntervalInMs, timeoutInMs) {
+    // This wrapper handles exceptions gracefully as long as we haven't exceeded
+    // the timeout.
+    async function tryGetAccessToken() {
+        if (Date.now() < timeoutInMs) {
+            try {
+                return await getAccessToken();
+            }
+            catch (_a) {
+                return null;
+            }
+        }
+        else {
+            const finalToken = await getAccessToken();
+            // Timeout is up, so throw if it's still null
+            if (finalToken === null) {
+                throw new Error("Failed to refresh access token.");
+            }
+            return finalToken;
+        }
+    }
+    let token = await tryGetAccessToken();
+    while (token === null) {
+        await delay(retryIntervalInMs);
+        token = await tryGetAccessToken();
+    }
+    return token;
+}
+/**
+ * Creates a token cycler from a credential, scopes, and optional settings.
+ *
+ * A token cycler represents a way to reliably retrieve a valid access token
+ * from a TokenCredential. It will handle initializing the token, refreshing it
+ * when it nears expiration, and synchronizes refresh attempts to avoid
+ * concurrency hazards.
+ *
+ * @param credential - the underlying TokenCredential that provides the access
+ * token
+ * @param scopes - the scopes to request authorization for
+ * @param tokenCyclerOptions - optionally override default settings for the cycler
+ *
+ * @returns - a function that reliably produces a valid access token
+ */
+function createTokenCycler(credential, scopes, tokenCyclerOptions) {
+    let refreshWorker = null;
+    let token = null;
+    const options = Object.assign(Object.assign({}, DEFAULT_CYCLER_OPTIONS), tokenCyclerOptions);
+    /**
+     * This little holder defines several predicates that we use to construct
+     * the rules of refreshing the token.
+     */
+    const cycler = {
+        /**
+         * Produces true if a refresh job is currently in progress.
+         */
+        get isRefreshing() {
+            return refreshWorker !== null;
+        },
+        /**
+         * Produces true if the cycler SHOULD refresh (we are within the refresh
+         * window and not already refreshing)
+         */
+        get shouldRefresh() {
+            var _a;
+            return (!cycler.isRefreshing &&
+                ((_a = token === null || token === void 0 ? void 0 : token.expiresOnTimestamp) !== null && _a !== void 0 ? _a : 0) - options.refreshWindowInMs < Date.now());
+        },
+        /**
+         * Produces true if the cycler MUST refresh (null or nearly-expired
+         * token).
+         */
+        get mustRefresh() {
+            return (token === null || token.expiresOnTimestamp - options.forcedRefreshWindowInMs < Date.now());
+        },
+    };
+    /**
+     * Starts a refresh job or returns the existing job if one is already
+     * running.
+     */
+    function refresh(getTokenOptions) {
+        var _a;
+        if (!cycler.isRefreshing) {
+            // We bind `scopes` here to avoid passing it around a lot
+            const tryGetAccessToken = () => credential.getToken(scopes, getTokenOptions);
+            // Take advantage of promise chaining to insert an assignment to `token`
+            // before the refresh can be considered done.
+            refreshWorker = beginRefresh(tryGetAccessToken, options.retryIntervalInMs, 
+            // If we don't have a token, then we should timeout immediately
+            (_a = token === null || token === void 0 ? void 0 : token.expiresOnTimestamp) !== null && _a !== void 0 ? _a : Date.now())
+                .then((_token) => {
+                refreshWorker = null;
+                token = _token;
+                return token;
+            })
+                .catch((reason) => {
+                // We also should reset the refresher if we enter a failed state.  All
+                // existing awaiters will throw, but subsequent requests will start a
+                // new retry chain.
+                refreshWorker = null;
+                token = null;
+                throw reason;
+            });
+        }
+        return refreshWorker;
+    }
+    return async (tokenOptions) => {
+        //
+        // Simple rules:
+        // - If we MUST refresh, then return the refresh task, blocking
+        //   the pipeline until a token is available.
+        // - If we SHOULD refresh, then run refresh but don't return it
+        //   (we can still use the cached token).
+        // - Return the token, since it's fine if we didn't return in
+        //   step 1.
+        //
+        if (cycler.mustRefresh)
+            return refresh(tokenOptions);
+        if (cycler.shouldRefresh) {
+            refresh(tokenOptions);
+        }
+        return token;
+    };
+}
+// #endregion
+/**
+ * Creates a new factory for a RequestPolicy that applies a bearer token to
+ * the requests' `Authorization` headers.
+ *
+ * @param credential - The TokenCredential implementation that can supply the bearer token.
+ * @param scopes - The scopes for which the bearer token applies.
+ */
+function bearerTokenAuthenticationPolicy(credential, scopes) {
+    // This simple function encapsulates the entire process of reliably retrieving the token
+    const getToken = createTokenCycler(credential, scopes /* , options */);
+    class BearerTokenAuthenticationPolicy extends BaseRequestPolicy {
+        constructor(nextPolicy, options) {
+            super(nextPolicy, options);
+        }
+        async sendRequest(webResource) {
+            if (!webResource.url.toLowerCase().startsWith("https://")) {
+                throw new Error("Bearer token authentication is not permitted for non-TLS protected (non-https) URLs.");
+            }
+            const { token } = await getToken({
+                abortSignal: webResource.abortSignal,
+                tracingOptions: {
+                    tracingContext: webResource.tracingContext,
+                },
+            });
+            webResource.headers.set(Constants.HeaderConstants.AUTHORIZATION, `Bearer ${token}`);
+            return this._nextPolicy.sendRequest(webResource);
+        }
+    }
+    return {
+        create: (nextPolicy, options) => {
+            return new BearerTokenAuthenticationPolicy(nextPolicy, options);
+        },
+    };
+}
+
+// Copyright (c) Microsoft Corporation.
+/**
+ * Returns a request policy factory that can be used to create an instance of
+ * {@link DisableResponseDecompressionPolicy}.
+ */
+function disableResponseDecompressionPolicy() {
+    return {
+        create: (nextPolicy, options) => {
+            return new DisableResponseDecompressionPolicy(nextPolicy, options);
+        },
+    };
+}
+/**
+ * A policy to disable response decompression according to Accept-Encoding header
+ * https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding
+ */
+class DisableResponseDecompressionPolicy extends BaseRequestPolicy {
+    /**
+     * Creates an instance of DisableResponseDecompressionPolicy.
+     *
+     * @param nextPolicy -
+     * @param options -
+     */
+    // The parent constructor is protected.
+    /* eslint-disable-next-line @typescript-eslint/no-useless-constructor */
+    constructor(nextPolicy, options) {
+        super(nextPolicy, options);
+    }
+    /**
+     * Sends out request.
+     *
+     * @param request -
+     * @returns
+     */
+    async sendRequest(request) {
+        request.decompressResponse = false;
+        return this._nextPolicy.sendRequest(request);
+    }
+}
+
+// Copyright (c) Microsoft Corporation.
+/**
+ * Creates a policy that assigns a unique request id to outgoing requests.
+ * @param requestIdHeaderName - The name of the header to use when assigning the unique id to the request.
+ */
 function generateClientRequestIdPolicy(requestIdHeaderName = "x-ms-client-request-id") {
     return {
         create: (nextPolicy, options) => {
             return new GenerateClientRequestIdPolicy(nextPolicy, options, requestIdHeaderName);
-        }
+        },
     };
 }
 class GenerateClientRequestIdPolicy extends BaseRequestPolicy {
@@ -9687,130 +10277,190 @@ class GenerateClientRequestIdPolicy extends BaseRequestPolicy {
 }
 
 // Copyright (c) Microsoft Corporation.
-function getDefaultUserAgentKey() {
-    return Constants.HeaderConstants.USER_AGENT;
-}
-function getPlatformSpecificData() {
-    const runtimeInfo = {
-        key: "Node",
-        value: process.version
-    };
-    const osInfo = {
-        key: "OS",
-        value: `(${os.arch()}-${os.type()}-${os.release()})`
-    };
-    return [runtimeInfo, osInfo];
+let cachedHttpClient;
+function getCachedDefaultHttpClient() {
+    if (!cachedHttpClient) {
+        cachedHttpClient = new NodeFetchHttpClient();
+    }
+    return cachedHttpClient;
 }
 
 // Copyright (c) Microsoft Corporation.
-function getRuntimeInfo() {
-    const msRestRuntime = {
-        key: "core-http",
-        value: Constants.coreHttpVersion
-    };
-    return [msRestRuntime];
-}
-function getUserAgentString(telemetryInfo, keySeparator = " ", valueSeparator = "/") {
-    return telemetryInfo
-        .map((info) => {
-        const value = info.value ? `${valueSeparator}${info.value}` : "";
-        return `${info.key}${value}`;
-    })
-        .join(keySeparator);
-}
-const getDefaultUserAgentHeaderName = getDefaultUserAgentKey;
-function getDefaultUserAgentValue() {
-    const runtimeInfo = getRuntimeInfo();
-    const platformSpecificData = getPlatformSpecificData();
-    const userAgent = getUserAgentString(runtimeInfo.concat(platformSpecificData));
-    return userAgent;
-}
-function userAgentPolicy(userAgentData) {
-    const key = !userAgentData || userAgentData.key === undefined || userAgentData.key === null
-        ? getDefaultUserAgentKey()
-        : userAgentData.key;
-    const value = !userAgentData || userAgentData.value === undefined || userAgentData.value === null
-        ? getDefaultUserAgentValue()
-        : userAgentData.value;
+function ndJsonPolicy() {
     return {
         create: (nextPolicy, options) => {
-            return new UserAgentPolicy(nextPolicy, options, key, value);
-        }
+            return new NdJsonPolicy(nextPolicy, options);
+        },
     };
 }
-class UserAgentPolicy extends BaseRequestPolicy {
-    constructor(_nextPolicy, _options, headerKey, headerValue) {
-        super(_nextPolicy, _options);
-        this._nextPolicy = _nextPolicy;
-        this._options = _options;
-        this.headerKey = headerKey;
-        this.headerValue = headerValue;
+/**
+ * NdJsonPolicy that formats a JSON array as newline-delimited JSON
+ */
+class NdJsonPolicy extends BaseRequestPolicy {
+    /**
+     * Creates an instance of KeepAlivePolicy.
+     */
+    constructor(nextPolicy, options) {
+        super(nextPolicy, options);
     }
-    sendRequest(request) {
-        this.addUserAgentHeader(request);
+    /**
+     * Sends a request.
+     */
+    async sendRequest(request) {
+        // There currently isn't a good way to bypass the serializer
+        if (typeof request.body === "string" && request.body.startsWith("[")) {
+            const body = JSON.parse(request.body);
+            if (Array.isArray(body)) {
+                request.body = body.map((item) => JSON.stringify(item) + "\n").join("");
+            }
+        }
         return this._nextPolicy.sendRequest(request);
-    }
-    addUserAgentHeader(request) {
-        if (!request.headers) {
-            request.headers = new HttpHeaders();
-        }
-        if (!request.headers.get(this.headerKey) && this.headerValue) {
-            request.headers.set(this.headerKey, this.headerValue);
-        }
     }
 }
 
 // Copyright (c) Microsoft Corporation.
 /**
- * Methods that are allowed to follow redirects 301 and 302
+ * Stores the patterns specified in NO_PROXY environment variable.
+ * @internal
  */
-const allowedRedirect = ["GET", "HEAD"];
-const DefaultRedirectOptions = {
-    handleRedirects: true,
-    maxRetries: 20
-};
-function redirectPolicy(maximumRetries = 20) {
-    return {
-        create: (nextPolicy, options) => {
-            return new RedirectPolicy(nextPolicy, options, maximumRetries);
+const globalNoProxyList = [];
+let noProxyListLoaded = false;
+/** A cache of whether a host should bypass the proxy. */
+const globalBypassedMap = new Map();
+function loadEnvironmentProxyValue() {
+    if (!process) {
+        return undefined;
+    }
+    const httpsProxy = getEnvironmentValue(Constants.HTTPS_PROXY);
+    const allProxy = getEnvironmentValue(Constants.ALL_PROXY);
+    const httpProxy = getEnvironmentValue(Constants.HTTP_PROXY);
+    return httpsProxy || allProxy || httpProxy;
+}
+/**
+ * Check whether the host of a given `uri` matches any pattern in the no proxy list.
+ * If there's a match, any request sent to the same host shouldn't have the proxy settings set.
+ * This implementation is a port of https://github.com/Azure/azure-sdk-for-net/blob/8cca811371159e527159c7eb65602477898683e2/sdk/core/Azure.Core/src/Pipeline/Internal/HttpEnvironmentProxy.cs#L210
+ */
+function isBypassed(uri, noProxyList, bypassedMap) {
+    if (noProxyList.length === 0) {
+        return false;
+    }
+    const host = URLBuilder.parse(uri).getHost();
+    if (bypassedMap === null || bypassedMap === void 0 ? void 0 : bypassedMap.has(host)) {
+        return bypassedMap.get(host);
+    }
+    let isBypassedFlag = false;
+    for (const pattern of noProxyList) {
+        if (pattern[0] === ".") {
+            // This should match either domain it self or any subdomain or host
+            // .foo.com will match foo.com it self or *.foo.com
+            if (host.endsWith(pattern)) {
+                isBypassedFlag = true;
+            }
+            else {
+                if (host.length === pattern.length - 1 && host === pattern.slice(1)) {
+                    isBypassedFlag = true;
+                }
+            }
         }
+        else {
+            if (host === pattern) {
+                isBypassedFlag = true;
+            }
+        }
+    }
+    bypassedMap === null || bypassedMap === void 0 ? void 0 : bypassedMap.set(host, isBypassedFlag);
+    return isBypassedFlag;
+}
+/**
+ * @internal
+ */
+function loadNoProxy() {
+    const noProxy = getEnvironmentValue(Constants.NO_PROXY);
+    noProxyListLoaded = true;
+    if (noProxy) {
+        return noProxy
+            .split(",")
+            .map((item) => item.trim())
+            .filter((item) => item.length);
+    }
+    return [];
+}
+/**
+ * Converts a given URL of a proxy server into `ProxySettings` or attempts to retrieve `ProxySettings` from the current environment if one is not passed.
+ * @param proxyUrl - URL of the proxy
+ * @returns The default proxy settings, or undefined.
+ */
+function getDefaultProxySettings(proxyUrl) {
+    if (!proxyUrl) {
+        proxyUrl = loadEnvironmentProxyValue();
+        if (!proxyUrl) {
+            return undefined;
+        }
+    }
+    const { username, password, urlWithoutAuth } = extractAuthFromUrl(proxyUrl);
+    const parsedUrl = URLBuilder.parse(urlWithoutAuth);
+    const schema = parsedUrl.getScheme() ? parsedUrl.getScheme() + "://" : "";
+    return {
+        host: schema + parsedUrl.getHost(),
+        port: Number.parseInt(parsedUrl.getPort() || "80"),
+        username,
+        password,
     };
 }
-class RedirectPolicy extends BaseRequestPolicy {
-    constructor(nextPolicy, options, maxRetries = 20) {
+/**
+ * A policy that allows one to apply proxy settings to all requests.
+ * If not passed static settings, they will be retrieved from the HTTPS_PROXY
+ * or HTTP_PROXY environment variables.
+ * @param proxySettings - ProxySettings to use on each request.
+ * @param options - additional settings, for example, custom NO_PROXY patterns
+ */
+function proxyPolicy(proxySettings, options) {
+    if (!proxySettings) {
+        proxySettings = getDefaultProxySettings();
+    }
+    if (!noProxyListLoaded) {
+        globalNoProxyList.push(...loadNoProxy());
+    }
+    return {
+        create: (nextPolicy, requestPolicyOptions) => {
+            return new ProxyPolicy(nextPolicy, requestPolicyOptions, proxySettings, options === null || options === void 0 ? void 0 : options.customNoProxyList);
+        },
+    };
+}
+function extractAuthFromUrl(url) {
+    const atIndex = url.indexOf("@");
+    if (atIndex === -1) {
+        return { urlWithoutAuth: url };
+    }
+    const schemeIndex = url.indexOf("://");
+    const authStart = schemeIndex !== -1 ? schemeIndex + 3 : 0;
+    const auth = url.substring(authStart, atIndex);
+    const colonIndex = auth.indexOf(":");
+    const hasPassword = colonIndex !== -1;
+    const username = hasPassword ? auth.substring(0, colonIndex) : auth;
+    const password = hasPassword ? auth.substring(colonIndex + 1) : undefined;
+    const urlWithoutAuth = url.substring(0, authStart) + url.substring(atIndex + 1);
+    return {
+        username,
+        password,
+        urlWithoutAuth,
+    };
+}
+class ProxyPolicy extends BaseRequestPolicy {
+    constructor(nextPolicy, options, proxySettings, customNoProxyList) {
         super(nextPolicy, options);
-        this.maxRetries = maxRetries;
+        this.proxySettings = proxySettings;
+        this.customNoProxyList = customNoProxyList;
     }
     sendRequest(request) {
-        return this._nextPolicy
-            .sendRequest(request)
-            .then((response) => handleRedirect(this, response, 0));
-    }
-}
-function handleRedirect(policy, response, currentRetries) {
-    const { request, status } = response;
-    const locationHeader = response.headers.get("location");
-    if (locationHeader &&
-        (status === 300 ||
-            (status === 301 && allowedRedirect.includes(request.method)) ||
-            (status === 302 && allowedRedirect.includes(request.method)) ||
-            (status === 303 && request.method === "POST") ||
-            status === 307) &&
-        (!policy.maxRetries || currentRetries < policy.maxRetries)) {
-        const builder = URLBuilder.parse(request.url);
-        builder.setPath(locationHeader);
-        request.url = builder.toString();
-        // POST request with Status code 303 should be converted into a
-        // redirected GET request if the redirect url is present in the location header
-        if (status === 303) {
-            request.method = "GET";
-            delete request.body;
+        var _a;
+        if (!request.proxySettings &&
+            !isBypassed(request.url, (_a = this.customNoProxyList) !== null && _a !== void 0 ? _a : globalNoProxyList, this.customNoProxyList ? undefined : globalBypassedMap)) {
+            request.proxySettings = this.proxySettings;
         }
-        return policy._nextPolicy
-            .sendRequest(request)
-            .then((res) => handleRedirect(policy, res, currentRetries + 1));
+        return this._nextPolicy.sendRequest(request);
     }
-    return Promise.resolve(response);
 }
 
 // Copyright (c) Microsoft Corporation.
@@ -9818,7 +10468,7 @@ function rpRegistrationPolicy(retryTimeout = 30) {
     return {
         create: (nextPolicy, options) => {
             return new RPRegistrationPolicy(nextPolicy, options, retryTimeout);
-        }
+        },
     };
 }
 class RPRegistrationPolicy extends BaseRequestPolicy {
@@ -9963,193 +10613,52 @@ async function getRegistrationStatus(policy, url, originalRequest) {
 }
 
 // Copyright (c) Microsoft Corporation.
-// Default options for the cycler if none are provided
-const DEFAULT_CYCLER_OPTIONS = {
-    forcedRefreshWindowInMs: 1000,
-    retryIntervalInMs: 3000,
-    refreshWindowInMs: 1000 * 60 * 2 // Start refreshing 2m before expiry
-};
 /**
- * Converts an an unreliable access token getter (which may resolve with null)
- * into an AccessTokenGetter by retrying the unreliable getter in a regular
- * interval.
- *
- * @param getAccessToken - a function that produces a promise of an access
- * token that may fail by returning null
- * @param retryIntervalInMs - the time (in milliseconds) to wait between retry
- * attempts
- * @param timeoutInMs - the timestamp after which the refresh attempt will fail,
- * throwing an exception
- * @returns - a promise that, if it resolves, will resolve with an access token
+ * Creates a policy that signs outgoing requests by calling to the provided `authenticationProvider`'s `signRequest` method.
+ * @param authenticationProvider - The authentication provider.
+ * @returns An instance of the {@link SigningPolicy}.
  */
-async function beginRefresh(getAccessToken, retryIntervalInMs, timeoutInMs) {
-    // This wrapper handles exceptions gracefully as long as we haven't exceeded
-    // the timeout.
-    async function tryGetAccessToken() {
-        if (Date.now() < timeoutInMs) {
-            try {
-                return await getAccessToken();
-            }
-            catch (_a) {
-                return null;
-            }
-        }
-        else {
-            const finalToken = await getAccessToken();
-            // Timeout is up, so throw if it's still null
-            if (finalToken === null) {
-                throw new Error("Failed to refresh access token.");
-            }
-            return finalToken;
-        }
-    }
-    let token = await tryGetAccessToken();
-    while (token === null) {
-        await delay(retryIntervalInMs);
-        token = await tryGetAccessToken();
-    }
-    return token;
-}
-/**
- * Creates a token cycler from a credential, scopes, and optional settings.
- *
- * A token cycler represents a way to reliably retrieve a valid access token
- * from a TokenCredential. It will handle initializing the token, refreshing it
- * when it nears expiration, and synchronizes refresh attempts to avoid
- * concurrency hazards.
- *
- * @param credential - the underlying TokenCredential that provides the access
- * token
- * @param scopes - the scopes to request authorization for
- * @param tokenCyclerOptions - optionally override default settings for the cycler
- *
- * @returns - a function that reliably produces a valid access token
- */
-function createTokenCycler(credential, scopes, tokenCyclerOptions) {
-    let refreshWorker = null;
-    let token = null;
-    const options = Object.assign(Object.assign({}, DEFAULT_CYCLER_OPTIONS), tokenCyclerOptions);
-    /**
-     * This little holder defines several predicates that we use to construct
-     * the rules of refreshing the token.
-     */
-    const cycler = {
-        /**
-         * Produces true if a refresh job is currently in progress.
-         */
-        get isRefreshing() {
-            return refreshWorker !== null;
-        },
-        /**
-         * Produces true if the cycler SHOULD refresh (we are within the refresh
-         * window and not already refreshing)
-         */
-        get shouldRefresh() {
-            var _a;
-            return (!cycler.isRefreshing &&
-                ((_a = token === null || token === void 0 ? void 0 : token.expiresOnTimestamp) !== null && _a !== void 0 ? _a : 0) - options.refreshWindowInMs < Date.now());
-        },
-        /**
-         * Produces true if the cycler MUST refresh (null or nearly-expired
-         * token).
-         */
-        get mustRefresh() {
-            return (token === null || token.expiresOnTimestamp - options.forcedRefreshWindowInMs < Date.now());
-        }
-    };
-    /**
-     * Starts a refresh job or returns the existing job if one is already
-     * running.
-     */
-    function refresh(getTokenOptions) {
-        var _a;
-        if (!cycler.isRefreshing) {
-            // We bind `scopes` here to avoid passing it around a lot
-            const tryGetAccessToken = () => credential.getToken(scopes, getTokenOptions);
-            // Take advantage of promise chaining to insert an assignment to `token`
-            // before the refresh can be considered done.
-            refreshWorker = beginRefresh(tryGetAccessToken, options.retryIntervalInMs, 
-            // If we don't have a token, then we should timeout immediately
-            (_a = token === null || token === void 0 ? void 0 : token.expiresOnTimestamp) !== null && _a !== void 0 ? _a : Date.now())
-                .then((_token) => {
-                refreshWorker = null;
-                token = _token;
-                return token;
-            })
-                .catch((reason) => {
-                // We also should reset the refresher if we enter a failed state.  All
-                // existing awaiters will throw, but subsequent requests will start a
-                // new retry chain.
-                refreshWorker = null;
-                token = null;
-                throw reason;
-            });
-        }
-        return refreshWorker;
-    }
-    return async (tokenOptions) => {
-        //
-        // Simple rules:
-        // - If we MUST refresh, then return the refresh task, blocking
-        //   the pipeline until a token is available.
-        // - If we SHOULD refresh, then run refresh but don't return it
-        //   (we can still use the cached token).
-        // - Return the token, since it's fine if we didn't return in
-        //   step 1.
-        //
-        if (cycler.mustRefresh)
-            return refresh(tokenOptions);
-        if (cycler.shouldRefresh) {
-            refresh(tokenOptions);
-        }
-        return token;
-    };
-}
-// #endregion
-/**
- * Creates a new factory for a RequestPolicy that applies a bearer token to
- * the requests' `Authorization` headers.
- *
- * @param credential - The TokenCredential implementation that can supply the bearer token.
- * @param scopes - The scopes for which the bearer token applies.
- */
-function bearerTokenAuthenticationPolicy(credential, scopes) {
-    // This simple function encapsulates the entire process of reliably retrieving the token
-    const getToken = createTokenCycler(credential, scopes /* , options */);
-    class BearerTokenAuthenticationPolicy extends BaseRequestPolicy {
-        constructor(nextPolicy, options) {
-            super(nextPolicy, options);
-        }
-        async sendRequest(webResource) {
-            if (!webResource.url.toLowerCase().startsWith("https://")) {
-                throw new Error("Bearer token authentication is not permitted for non-TLS protected (non-https) URLs.");
-            }
-            const { token } = await getToken({
-                abortSignal: webResource.abortSignal,
-                tracingOptions: {
-                    tracingContext: webResource.tracingContext
-                }
-            });
-            webResource.headers.set(Constants.HeaderConstants.AUTHORIZATION, `Bearer ${token}`);
-            return this._nextPolicy.sendRequest(webResource);
-        }
-    }
+function signingPolicy(authenticationProvider) {
     return {
         create: (nextPolicy, options) => {
-            return new BearerTokenAuthenticationPolicy(nextPolicy, options);
-        }
+            return new SigningPolicy(nextPolicy, options, authenticationProvider);
+        },
     };
+}
+/**
+ * A policy that signs outgoing requests by calling to the provided `authenticationProvider`'s `signRequest` method.
+ */
+class SigningPolicy extends BaseRequestPolicy {
+    constructor(nextPolicy, options, authenticationProvider) {
+        super(nextPolicy, options);
+        this.authenticationProvider = authenticationProvider;
+    }
+    signRequest(request) {
+        return this.authenticationProvider.signRequest(request);
+    }
+    sendRequest(request) {
+        return this.signRequest(request).then((nextRequest) => this._nextPolicy.sendRequest(nextRequest));
+    }
 }
 
 // Copyright (c) Microsoft Corporation.
+/**
+ * A policy that retries when there's a system error, identified by the codes "ETIMEDOUT", "ESOCKETTIMEDOUT", "ECONNREFUSED", "ECONNRESET" or "ENOENT".
+ * @param retryCount - Maximum number of retries.
+ * @param retryInterval - The client retry interval, in milliseconds.
+ * @param minRetryInterval - The minimum retry interval, in milliseconds.
+ * @param maxRetryInterval - The maximum retry interval, in milliseconds.
+ * @returns An instance of the {@link SystemErrorRetryPolicy}
+ */
 function systemErrorRetryPolicy(retryCount, retryInterval, minRetryInterval, maxRetryInterval) {
     return {
         create: (nextPolicy, options) => {
             return new SystemErrorRetryPolicy(nextPolicy, options, retryCount, retryInterval, minRetryInterval, maxRetryInterval);
-        }
+        },
     };
 }
 /**
+ * A policy that retries when there's a system error, identified by the codes "ETIMEDOUT", "ESOCKETTIMEDOUT", "ECONNREFUSED", "ECONNRESET" or "ENOENT".
  * @param retryCount - The client retry count.
  * @param retryInterval - The client retry interval, in milliseconds.
  * @param minRetryInterval - The minimum retry interval, in milliseconds.
@@ -10170,10 +10679,10 @@ class SystemErrorRetryPolicy extends BaseRequestPolicy {
     sendRequest(request) {
         return this._nextPolicy
             .sendRequest(request.clone())
-            .catch((error) => retry$1(this, request, error.response, error));
+            .catch((error) => retry(this, request, error.response, error));
     }
 }
-async function retry$1(policy, request, operationResponse, err, retryData) {
+async function retry(policy, request, operationResponse, err, retryData) {
     retryData = updateRetryData(policy, retryData, err);
     function shouldPolicyRetry(_response, error) {
         if (error &&
@@ -10194,7 +10703,7 @@ async function retry$1(policy, request, operationResponse, err, retryData) {
             return policy._nextPolicy.sendRequest(request.clone());
         }
         catch (nestedErr) {
-            return retry$1(policy, request, operationResponse, nestedErr, retryData);
+            return retry(policy, request, operationResponse, nestedErr, retryData);
         }
     }
     else {
@@ -10207,155 +10716,6 @@ async function retry$1(policy, request, operationResponse, err, retryData) {
 }
 
 // Copyright (c) Microsoft Corporation.
-(function (QueryCollectionFormat) {
-    QueryCollectionFormat["Csv"] = ",";
-    QueryCollectionFormat["Ssv"] = " ";
-    QueryCollectionFormat["Tsv"] = "\t";
-    QueryCollectionFormat["Pipes"] = "|";
-    QueryCollectionFormat["Multi"] = "Multi";
-})(exports.QueryCollectionFormat || (exports.QueryCollectionFormat = {}));
-
-// Copyright (c) Microsoft Corporation.
-/**
- * Stores the patterns specified in NO_PROXY environment variable.
- * @internal
- */
-const globalNoProxyList = [];
-let noProxyListLoaded = false;
-/** A cache of whether a host should bypass the proxy. */
-const globalBypassedMap = new Map();
-function loadEnvironmentProxyValue() {
-    if (!process) {
-        return undefined;
-    }
-    const httpsProxy = getEnvironmentValue(Constants.HTTPS_PROXY);
-    const allProxy = getEnvironmentValue(Constants.ALL_PROXY);
-    const httpProxy = getEnvironmentValue(Constants.HTTP_PROXY);
-    return httpsProxy || allProxy || httpProxy;
-}
-/**
- * Check whether the host of a given `uri` matches any pattern in the no proxy list.
- * If there's a match, any request sent to the same host shouldn't have the proxy settings set.
- * This implementation is a port of https://github.com/Azure/azure-sdk-for-net/blob/8cca811371159e527159c7eb65602477898683e2/sdk/core/Azure.Core/src/Pipeline/Internal/HttpEnvironmentProxy.cs#L210
- */
-function isBypassed(uri, noProxyList, bypassedMap) {
-    if (noProxyList.length === 0) {
-        return false;
-    }
-    const host = URLBuilder.parse(uri).getHost();
-    if (bypassedMap === null || bypassedMap === void 0 ? void 0 : bypassedMap.has(host)) {
-        return bypassedMap.get(host);
-    }
-    let isBypassedFlag = false;
-    for (const pattern of noProxyList) {
-        if (pattern[0] === ".") {
-            // This should match either domain it self or any subdomain or host
-            // .foo.com will match foo.com it self or *.foo.com
-            if (host.endsWith(pattern)) {
-                isBypassedFlag = true;
-            }
-            else {
-                if (host.length === pattern.length - 1 && host === pattern.slice(1)) {
-                    isBypassedFlag = true;
-                }
-            }
-        }
-        else {
-            if (host === pattern) {
-                isBypassedFlag = true;
-            }
-        }
-    }
-    bypassedMap === null || bypassedMap === void 0 ? void 0 : bypassedMap.set(host, isBypassedFlag);
-    return isBypassedFlag;
-}
-/**
- * @internal
- */
-function loadNoProxy() {
-    const noProxy = getEnvironmentValue(Constants.NO_PROXY);
-    noProxyListLoaded = true;
-    if (noProxy) {
-        return noProxy
-            .split(",")
-            .map((item) => item.trim())
-            .filter((item) => item.length);
-    }
-    return [];
-}
-function getDefaultProxySettings(proxyUrl) {
-    if (!proxyUrl) {
-        proxyUrl = loadEnvironmentProxyValue();
-        if (!proxyUrl) {
-            return undefined;
-        }
-    }
-    const { username, password, urlWithoutAuth } = extractAuthFromUrl(proxyUrl);
-    const parsedUrl = URLBuilder.parse(urlWithoutAuth);
-    const schema = parsedUrl.getScheme() ? parsedUrl.getScheme() + "://" : "";
-    return {
-        host: schema + parsedUrl.getHost(),
-        port: Number.parseInt(parsedUrl.getPort() || "80"),
-        username,
-        password
-    };
-}
-/**
- * A policy that allows one to apply proxy settings to all requests.
- * If not passed static settings, they will be retrieved from the HTTPS_PROXY
- * or HTTP_PROXY environment variables.
- * @param proxySettings - ProxySettings to use on each request.
- * @param options - additional settings, for example, custom NO_PROXY patterns
- */
-function proxyPolicy(proxySettings, options) {
-    if (!proxySettings) {
-        proxySettings = getDefaultProxySettings();
-    }
-    if (!noProxyListLoaded) {
-        globalNoProxyList.push(...loadNoProxy());
-    }
-    return {
-        create: (nextPolicy, requestPolicyOptions) => {
-            return new ProxyPolicy(nextPolicy, requestPolicyOptions, proxySettings, options === null || options === void 0 ? void 0 : options.customNoProxyList);
-        }
-    };
-}
-function extractAuthFromUrl(url) {
-    const atIndex = url.indexOf("@");
-    if (atIndex === -1) {
-        return { urlWithoutAuth: url };
-    }
-    const schemeIndex = url.indexOf("://");
-    const authStart = schemeIndex !== -1 ? schemeIndex + 3 : 0;
-    const auth = url.substring(authStart, atIndex);
-    const colonIndex = auth.indexOf(":");
-    const hasPassword = colonIndex !== -1;
-    const username = hasPassword ? auth.substring(0, colonIndex) : auth;
-    const password = hasPassword ? auth.substring(colonIndex + 1) : undefined;
-    const urlWithoutAuth = url.substring(0, authStart) + url.substring(atIndex + 1);
-    return {
-        username,
-        password,
-        urlWithoutAuth
-    };
-}
-class ProxyPolicy extends BaseRequestPolicy {
-    constructor(nextPolicy, options, proxySettings, customNoProxyList) {
-        super(nextPolicy, options);
-        this.proxySettings = proxySettings;
-        this.customNoProxyList = customNoProxyList;
-    }
-    sendRequest(request) {
-        var _a;
-        if (!request.proxySettings &&
-            !isBypassed(request.url, (_a = this.customNoProxyList) !== null && _a !== void 0 ? _a : globalNoProxyList, this.customNoProxyList ? undefined : globalBypassedMap)) {
-            request.proxySettings = this.proxySettings;
-        }
-        return this._nextPolicy.sendRequest(request);
-    }
-}
-
-// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 /**
  * Maximum number of retries for the throttling retry policy
@@ -10364,15 +10724,28 @@ const DEFAULT_CLIENT_MAX_RETRY_COUNT = 3;
 
 // Copyright (c) Microsoft Corporation.
 const StatusCodes = Constants.HttpConstants.StatusCodes;
+/**
+ * Creates a policy that re-sends the request if the response indicates the request failed because of throttling reasons.
+ * For example, if the response contains a `Retry-After` header, it will retry sending the request based on the value of that header.
+ *
+ * To learn more, please refer to
+ * https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-manager-request-limits,
+ * https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits and
+ * https://docs.microsoft.com/en-us/azure/virtual-machines/troubleshooting/troubleshooting-throttling-errors
+ * @returns
+ */
 function throttlingRetryPolicy() {
     return {
         create: (nextPolicy, options) => {
             return new ThrottlingRetryPolicy(nextPolicy, options);
-        }
+        },
     };
 }
-const StandardAbortMessage$1 = "The operation was aborted.";
+const StandardAbortMessage = "The operation was aborted.";
 /**
+ * Creates a policy that re-sends the request if the response indicates the request failed because of throttling reasons.
+ * For example, if the response contains a `Retry-After` header, it will retry sending the request based on the value of that header.
+ *
  * To learn more, please refer to
  * https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-manager-request-limits,
  * https://docs.microsoft.com/en-us/azure/azure-subscription-service-limits and
@@ -10403,10 +10776,10 @@ class ThrottlingRetryPolicy extends BaseRequestPolicy {
                 this.numberOfRetries += 1;
                 await delay(delayInMs, undefined, {
                     abortSignal: httpRequest.abortSignal,
-                    abortErrorMsg: StandardAbortMessage$1
+                    abortErrorMsg: StandardAbortMessage,
                 });
                 if ((_a = httpRequest.abortSignal) === null || _a === void 0 ? void 0 : _a.aborted) {
-                    throw new abortController.AbortError(StandardAbortMessage$1);
+                    throw new abortController.AbortError(StandardAbortMessage);
                 }
                 if (this.numberOfRetries < DEFAULT_CLIENT_MAX_RETRY_COUNT) {
                     return this.sendRequest(httpRequest);
@@ -10441,76 +10814,25 @@ class ThrottlingRetryPolicy extends BaseRequestPolicy {
 }
 
 // Copyright (c) Microsoft Corporation.
-function signingPolicy(authenticationProvider) {
-    return {
-        create: (nextPolicy, options) => {
-            return new SigningPolicy(nextPolicy, options, authenticationProvider);
-        }
-    };
-}
-class SigningPolicy extends BaseRequestPolicy {
-    constructor(nextPolicy, options, authenticationProvider) {
-        super(nextPolicy, options);
-        this.authenticationProvider = authenticationProvider;
-    }
-    signRequest(request) {
-        return this.authenticationProvider.signRequest(request);
-    }
-    sendRequest(request) {
-        return this.signRequest(request).then((nextRequest) => this._nextPolicy.sendRequest(nextRequest));
-    }
-}
-
-// Copyright (c) Microsoft Corporation.
-const DefaultKeepAliveOptions = {
-    enable: true
-};
-function keepAlivePolicy(keepAliveOptions) {
-    return {
-        create: (nextPolicy, options) => {
-            return new KeepAlivePolicy(nextPolicy, options, keepAliveOptions || DefaultKeepAliveOptions);
-        }
-    };
-}
-/**
- * KeepAlivePolicy is a policy used to control keep alive settings for every request.
- */
-class KeepAlivePolicy extends BaseRequestPolicy {
-    /**
-     * Creates an instance of KeepAlivePolicy.
-     *
-     * @param nextPolicy -
-     * @param options -
-     * @param keepAliveOptions -
-     */
-    constructor(nextPolicy, options, keepAliveOptions) {
-        super(nextPolicy, options);
-        this.keepAliveOptions = keepAliveOptions;
-    }
-    /**
-     * Sends out request.
-     *
-     * @param request -
-     * @returns
-     */
-    async sendRequest(request) {
-        request.keepAlive = this.keepAliveOptions.enable;
-        return this._nextPolicy.sendRequest(request);
-    }
-}
-
-// Copyright (c) Microsoft Corporation.
 const createSpan = coreTracing.createSpanFunction({
     packagePrefix: "",
-    namespace: ""
+    namespace: "",
 });
+/**
+ * Creates a policy that wraps outgoing requests with a tracing span.
+ * @param tracingOptions - Tracing options.
+ * @returns An instance of the {@link TracingPolicy} class.
+ */
 function tracingPolicy(tracingOptions = {}) {
     return {
         create(nextPolicy, options) {
             return new TracingPolicy(nextPolicy, options, tracingOptions);
-        }
+        },
     };
 }
+/**
+ * A policy that wraps outgoing requests with a tracing span.
+ */
 class TracingPolicy extends BaseRequestPolicy {
     constructor(nextPolicy, options, tracingOptions) {
         super(nextPolicy, options);
@@ -10537,14 +10859,13 @@ class TracingPolicy extends BaseRequestPolicy {
     tryCreateSpan(request) {
         var _a;
         try {
-            const path = URLBuilder.parse(request.url).getPath() || "/";
             // Passing spanOptions as part of tracingOptions to maintain compatibility @azure/core-tracing@preview.13 and earlier.
             // We can pass this as a separate parameter once we upgrade to the latest core-tracing.
-            const { span } = createSpan(path, {
+            const { span } = createSpan(`HTTP ${request.method}`, {
                 tracingOptions: {
                     spanOptions: Object.assign(Object.assign({}, request.spanOptions), { kind: coreTracing.SpanKind.CLIENT }),
-                    tracingContext: request.tracingContext
-                }
+                    tracingContext: request.tracingContext,
+                },
             });
             // If the span is not recording, don't do any more work.
             if (!span.isRecording()) {
@@ -10558,7 +10879,7 @@ class TracingPolicy extends BaseRequestPolicy {
             span.setAttributes({
                 "http.method": request.method,
                 "http.url": request.url,
-                requestId: request.requestId
+                requestId: request.requestId,
             });
             if (this.userAgent) {
                 span.setAttribute("http.user_agent", this.userAgent);
@@ -10585,7 +10906,7 @@ class TracingPolicy extends BaseRequestPolicy {
         try {
             span.setStatus({
                 code: coreTracing.SpanStatusCode.ERROR,
-                message: err.message
+                message: err.message,
             });
             if (err.statusCode) {
                 span.setAttribute("http.status_code", err.statusCode);
@@ -10604,7 +10925,7 @@ class TracingPolicy extends BaseRequestPolicy {
                 span.setAttribute("serviceRequestId", serviceRequestId);
             }
             span.setStatus({
-                code: coreTracing.SpanStatusCode.OK
+                code: coreTracing.SpanStatusCode.OK,
             });
             span.end();
         }
@@ -10612,88 +10933,6 @@ class TracingPolicy extends BaseRequestPolicy {
             logger.warning(`Skipping tracing span processing due to an error: ${error.message}`);
         }
     }
-}
-
-// Copyright (c) Microsoft Corporation.
-/**
- * Returns a request policy factory that can be used to create an instance of
- * {@link DisableResponseDecompressionPolicy}.
- */
-function disableResponseDecompressionPolicy() {
-    return {
-        create: (nextPolicy, options) => {
-            return new DisableResponseDecompressionPolicy(nextPolicy, options);
-        }
-    };
-}
-/**
- * A policy to disable response decompression according to Accept-Encoding header
- * https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding
- */
-class DisableResponseDecompressionPolicy extends BaseRequestPolicy {
-    /**
-     * Creates an instance of DisableResponseDecompressionPolicy.
-     *
-     * @param nextPolicy -
-     * @param options -
-     */
-    // The parent constructor is protected.
-    /* eslint-disable-next-line @typescript-eslint/no-useless-constructor */
-    constructor(nextPolicy, options) {
-        super(nextPolicy, options);
-    }
-    /**
-     * Sends out request.
-     *
-     * @param request -
-     * @returns
-     */
-    async sendRequest(request) {
-        request.decompressResponse = false;
-        return this._nextPolicy.sendRequest(request);
-    }
-}
-
-// Copyright (c) Microsoft Corporation.
-function ndJsonPolicy() {
-    return {
-        create: (nextPolicy, options) => {
-            return new NdJsonPolicy(nextPolicy, options);
-        }
-    };
-}
-/**
- * NdJsonPolicy that formats a JSON array as newline-delimited JSON
- */
-class NdJsonPolicy extends BaseRequestPolicy {
-    /**
-     * Creates an instance of KeepAlivePolicy.
-     */
-    constructor(nextPolicy, options) {
-        super(nextPolicy, options);
-    }
-    /**
-     * Sends a request.
-     */
-    async sendRequest(request) {
-        // There currently isn't a good way to bypass the serializer
-        if (typeof request.body === "string" && request.body.startsWith("[")) {
-            const body = JSON.parse(request.body);
-            if (Array.isArray(body)) {
-                request.body = body.map((item) => JSON.stringify(item) + "\n").join("");
-            }
-        }
-        return this._nextPolicy.sendRequest(request);
-    }
-}
-
-// Copyright (c) Microsoft Corporation.
-let cachedHttpClient;
-function getCachedDefaultHttpClient() {
-    if (!cachedHttpClient) {
-        cachedHttpClient = new NodeFetchHttpClient();
-    }
-    return cachedHttpClient;
 }
 
 // Copyright (c) Microsoft Corporation.
@@ -10745,7 +10984,7 @@ class ServiceClient {
                                 bearerTokenPolicyFactory = bearerTokenAuthenticationPolicy(credentials, credentialScopes);
                             }
                             return bearerTokenPolicyFactory.create(nextPolicy, createOptions);
-                        }
+                        },
                     };
                 };
                 authPolicyFactory = wrappedPolicyFactory();
@@ -10980,7 +11219,7 @@ function serializeRequestBody(serviceClient, httpRequest, operationArguments, op
     const updatedOptions = {
         rootName: (_c = serializerOptions.rootName) !== null && _c !== void 0 ? _c : "",
         includeRoot: (_d = serializerOptions.includeRoot) !== null && _d !== void 0 ? _d : false,
-        xmlCharKey: (_e = serializerOptions.xmlCharKey) !== null && _e !== void 0 ? _e : XML_CHARKEY
+        xmlCharKey: (_e = serializerOptions.xmlCharKey) !== null && _e !== void 0 ? _e : XML_CHARKEY,
     };
     const xmlCharKey = serializerOptions.xmlCharKey;
     if (operationSpec.requestBody && operationSpec.requestBody.mapper) {
@@ -10999,13 +11238,13 @@ function serializeRequestBody(serviceClient, httpRequest, operationArguments, op
                     if (typeName === MapperType.Sequence) {
                         httpRequest.body = stringifyXML(prepareXMLRootList(value, xmlElementName || xmlName || serializedName, xmlnsKey, xmlNamespace), {
                             rootName: xmlName || serializedName,
-                            xmlCharKey
+                            xmlCharKey,
                         });
                     }
                     else if (!isStream) {
                         httpRequest.body = stringifyXML(value, {
                             rootName: xmlName || serializedName,
-                            xmlCharKey
+                            xmlCharKey,
                         });
                     }
                 }
@@ -11089,6 +11328,12 @@ function createDefaultRequestPolicyFactories(authPolicyFactory, options) {
     factories.push(logPolicy({ logger: logger.info }));
     return factories;
 }
+/**
+ * Creates an HTTP pipeline based on the given options.
+ * @param pipelineOptions - Defines options that are used to configure policies in the HTTP pipeline for an SDK client.
+ * @param authPolicyFactory - An optional authentication policy factory to use for signing requests.
+ * @returns A set of options that can be passed to create a new {@link ServiceClient}.
+ */
 function createPipelineFromOptions(pipelineOptions, authPolicyFactory) {
     const requestPolicyFactories = [];
     if (pipelineOptions.sendStreamingJson) {
@@ -11127,7 +11372,7 @@ function createPipelineFromOptions(pipelineOptions, authPolicyFactory) {
     }
     return {
         httpClient: pipelineOptions.httpClient,
-        requestPolicyFactories
+        requestPolicyFactories,
     };
 }
 function getOperationArgumentValueFromParameter(serviceClient, operationArguments, parameter, serializer) {
@@ -11203,12 +11448,18 @@ function getPropertyFromParameterPath(parent, parameterPath) {
     }
     return result;
 }
+/**
+ * Parses an {@link HttpOperationResponse} into a normalized HTTP response object ({@link RestResponse}).
+ * @param _response - Wrapper object for http response.
+ * @param responseSpec - Mappers for how to parse the response properties.
+ * @returns - A normalized response object.
+ */
 function flattenResponse(_response, responseSpec) {
     const parsedHeaders = _response.parsedHeaders;
     const bodyMapper = responseSpec && responseSpec.bodyMapper;
     const addOperationResponse = (obj) => {
         return Object.defineProperty(obj, "_response", {
-            value: _response
+            value: _response,
         });
     };
     if (bodyMapper) {
@@ -11294,9 +11545,16 @@ class ExpiringAccessTokenCache {
         this.cachedToken = undefined;
         this.tokenRefreshBufferMs = tokenRefreshBufferMs;
     }
+    /**
+     * Saves an access token into the internal in-memory cache.
+     * @param accessToken - Access token or undefined to clear the cache.
+     */
     setCachedToken(accessToken) {
         this.cachedToken = accessToken;
     }
+    /**
+     * Returns the cached access token, or `undefined` if one is not cached or the cached one is expiring soon.
+     */
     getCachedToken() {
         if (this.cachedToken &&
             Date.now() + this.tokenRefreshBufferMs >= this.cachedToken.expiresOnTimestamp) {
@@ -11355,6 +11613,9 @@ class AccessTokenRefresher {
 // Copyright (c) Microsoft Corporation.
 const HeaderConstants = Constants.HeaderConstants;
 const DEFAULT_AUTHORIZATION_SCHEME = "Basic";
+/**
+ * A simple {@link ServiceClientCredential} that authenticates with a username and a password.
+ */
 class BasicAuthenticationCredentials {
     /**
      * Creates a new BasicAuthenticationCredentials object.
@@ -11364,6 +11625,10 @@ class BasicAuthenticationCredentials {
      * @param authorizationScheme - The authorization scheme.
      */
     constructor(userName, password, authorizationScheme = DEFAULT_AUTHORIZATION_SCHEME) {
+        /**
+         * Authorization scheme. Defaults to "Basic".
+         * More information about authorization schemes is available here: https://developer.mozilla.org/docs/Web/HTTP/Authentication#authentication_schemes
+         */
         this.authorizationScheme = DEFAULT_AUTHORIZATION_SCHEME;
         if (userName === null || userName === undefined || typeof userName.valueOf() !== "string") {
             throw new Error("userName cannot be null or undefined and must be of type string.");
@@ -11443,6 +11708,9 @@ class ApiKeyCredentials {
 }
 
 // Copyright (c) Microsoft Corporation.
+/**
+ * A {@link TopicCredentials} object used for Azure Event Grid.
+ */
 class TopicCredentials extends ApiKeyCredentials {
     /**
      * Creates a new EventGrid TopicCredentials object.
@@ -11455,8 +11723,8 @@ class TopicCredentials extends ApiKeyCredentials {
         }
         const options = {
             inHeader: {
-                "aeg-sas-key": topicKey
-            }
+                "aeg-sas-key": topicKey,
+            },
         };
         super(options);
     }
@@ -11464,9 +11732,7 @@ class TopicCredentials extends ApiKeyCredentials {
 
 Object.defineProperty(exports, "isTokenCredential", ({
     enumerable: true,
-    get: function () {
-        return coreAuth.isTokenCredential;
-    }
+    get: function () { return coreAuth.isTokenCredential; }
 }));
 exports.AccessTokenRefresher = AccessTokenRefresher;
 exports.ApiKeyCredentials = ApiKeyCredentials;
@@ -13217,7 +13483,7 @@ class Poller {
             if (!this.isDone()) {
                 this.operation = await this.operation.update({
                     abortSignal: options.abortSignal,
-                    fireProgress: this.fireProgress.bind(this)
+                    fireProgress: this.fireProgress.bind(this),
                 });
                 if (this.isDone() && this.resolve) {
                     // If the poller has finished polling, this means we now have a result.
@@ -13417,13 +13683,6 @@ class Poller {
 }
 
 // Copyright (c) Microsoft Corporation.
-/**
- * The `@azure/logger` configuration for this package.
- * @internal
- */
-const logger = logger$1.createClientLogger("core-lro");
-
-// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 /**
  * Detects where the continuation token is and returns it. Notice that azure-asyncoperation
@@ -13450,20 +13709,20 @@ function inferLroMode(requestPath, requestMethod, rawResponse) {
             mode: "AzureAsync",
             resourceLocation: requestMethod === "PUT"
                 ? requestPath
-                : requestMethod === "POST"
+                : requestMethod === "POST" || requestMethod === "PATCH"
                     ? getLocation(rawResponse)
-                    : undefined
+                    : undefined,
         };
     }
     else if (getLocation(rawResponse) !== undefined ||
         getOperationLocation(rawResponse) !== undefined) {
         return {
-            mode: "Location"
+            mode: "Location",
         };
     }
     else if (["PUT", "PATCH"].includes(requestMethod)) {
         return {
-            mode: "Body"
+            mode: "Body",
         };
     }
     return {};
@@ -13495,6 +13754,35 @@ function isUnexpectedPollingResponse(rawResponse) {
 // Licensed under the MIT license.
 const successStates = ["succeeded"];
 const failureStates = ["failed", "canceled", "cancelled"];
+
+// Copyright (c) Microsoft Corporation.
+function getProvisioningState(rawResponse) {
+    var _a, _b;
+    const { properties, provisioningState } = (_a = rawResponse.body) !== null && _a !== void 0 ? _a : {};
+    const state = (_b = properties === null || properties === void 0 ? void 0 : properties.provisioningState) !== null && _b !== void 0 ? _b : provisioningState;
+    return typeof state === "string" ? state.toLowerCase() : "succeeded";
+}
+function isBodyPollingDone(rawResponse) {
+    const state = getProvisioningState(rawResponse);
+    if (isUnexpectedPollingResponse(rawResponse) || failureStates.includes(state)) {
+        throw new Error(`The long running operation has failed. The provisioning state: ${state}.`);
+    }
+    return successStates.includes(state);
+}
+/**
+ * Creates a polling strategy based on BodyPolling which uses the provisioning state
+ * from the result to determine the current operation state
+ */
+function processBodyPollingOperationResult(response) {
+    return Object.assign(Object.assign({}, response), { done: isBodyPollingDone(response.rawResponse) });
+}
+
+// Copyright (c) Microsoft Corporation.
+/**
+ * The `@azure/logger` configuration for this package.
+ * @internal
+ */
+const logger = logger$1.createClientLogger("core-lro");
 
 // Copyright (c) Microsoft Corporation.
 function getResponseStatus(rawResponse) {
@@ -13541,28 +13829,6 @@ function processAzureAsyncOperationResult(lro, resourceLocation, lroResourceLoca
 }
 
 // Copyright (c) Microsoft Corporation.
-function getProvisioningState(rawResponse) {
-    var _a, _b;
-    const { properties, provisioningState } = (_a = rawResponse.body) !== null && _a !== void 0 ? _a : {};
-    const state = (_b = properties === null || properties === void 0 ? void 0 : properties.provisioningState) !== null && _b !== void 0 ? _b : provisioningState;
-    return typeof state === "string" ? state.toLowerCase() : "succeeded";
-}
-function isBodyPollingDone(rawResponse) {
-    const state = getProvisioningState(rawResponse);
-    if (isUnexpectedPollingResponse(rawResponse) || failureStates.includes(state)) {
-        throw new Error(`The long running operation has failed. The provisioning state: ${state}.`);
-    }
-    return successStates.includes(state);
-}
-/**
- * Creates a polling strategy based on BodyPolling which uses the provisioning state
- * from the result to determine the current operation state
- */
-function processBodyPollingOperationResult(response) {
-    return Object.assign(Object.assign({}, response), { done: isBodyPollingDone(response.rawResponse) });
-}
-
-// Copyright (c) Microsoft Corporation.
 function isLocationPollingDone(rawResponse) {
     return !isUnexpectedPollingResponse(rawResponse) && rawResponse.statusCode !== 202;
 }
@@ -13604,10 +13870,11 @@ function createPoll(lroPrimitives) {
         const response = await lroPrimitives.sendPollRequest(path);
         const retryAfter = response.rawResponse.headers["retry-after"];
         if (retryAfter !== undefined) {
-            const retryAfterInMs = parseInt(retryAfter);
-            pollerConfig.intervalInMs = isNaN(retryAfterInMs)
+            // Retry-After header value is either in HTTP date format, or in seconds
+            const retryAfterInSeconds = parseInt(retryAfter);
+            pollerConfig.intervalInMs = isNaN(retryAfterInSeconds)
                 ? calculatePollingIntervalFromDate(new Date(retryAfter), pollerConfig.intervalInMs)
-                : retryAfterInMs;
+                : retryAfterInSeconds * 1000;
         }
         return getLroStatusFromResponse(response);
     };
@@ -13730,7 +13997,7 @@ class GenericPollOperation {
      */
     toString() {
         return JSON.stringify({
-            state: this.state
+            state: this.state,
         });
     }
 }
@@ -13806,7 +14073,7 @@ function getPagedAsyncIterator(pagedResult) {
         },
         byPage: (_a = pagedResult === null || pagedResult === void 0 ? void 0 : pagedResult.byPage) !== null && _a !== void 0 ? _a : ((settings) => {
             return getPageAsyncIterator(pagedResult, settings === null || settings === void 0 ? void 0 : settings.maxPageSize);
-        })
+        }),
     };
 }
 function getItemAsyncIterator(pagedResult, maxPageSize) {
@@ -38724,14 +38991,15 @@ var DiagAPI = /** @class */ (function () {
     function DiagAPI() {
         function _logProxy(funcName) {
             return function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
                 var logger = global_utils_1.getGlobal('diag');
                 // shortcut if logger not set
                 if (!logger)
                     return;
-                return logger[funcName].apply(logger, 
-                // work around Function.prototype.apply types
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                arguments);
+                return logger[funcName].apply(logger, args);
             };
         }
         // Using self local variable for minification purposes as 'this' cannot be minified
@@ -39518,17 +39786,22 @@ var DiagConsoleLogger = /** @class */ (function () {
     function DiagConsoleLogger() {
         function _consoleFunc(funcName) {
             return function () {
-                var orgArguments = arguments;
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
                 if (console) {
                     // Some environments only expose the console when the F12 developer console is open
+                    // eslint-disable-next-line no-console
                     var theFunc = console[funcName];
                     if (typeof theFunc !== 'function') {
                         // Not all environments support all functions
+                        // eslint-disable-next-line no-console
                         theFunc = console.log;
                     }
                     // One last final check
                     if (typeof theFunc === 'function') {
-                        return theFunc.apply(console, orgArguments);
+                        return theFunc.apply(console, args);
                     }
                 }
             };
@@ -41077,7 +41350,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VERSION = void 0;
 // this is autogenerated file, see scripts/version-update.js
-exports.VERSION = '1.0.3';
+exports.VERSION = '1.0.4';
 //# sourceMappingURL=version.js.map
 
 /***/ }),
