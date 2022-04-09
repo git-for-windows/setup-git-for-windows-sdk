@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup Git for Windows' minimal SDK
       uses: git-for-windows/setup-git-for-windows-sdk@v1
     - name: Build
