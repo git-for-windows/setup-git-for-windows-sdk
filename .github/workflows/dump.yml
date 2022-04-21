@@ -7,6 +7,10 @@ jobs:
   dump:
     runs-on: ubuntu-latest
     steps:
+      - name: Show a couple values
+        run: |
+          echo "event_name: ${{ github.event_name }}"
+          echo "login: ${{ github.event.pull_request.head.repo.owner.login }}"
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
