@@ -1,0 +1,51 @@
+name: 'npm run package'
+# Main use case: repackage when Dependabot updates a dependency
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - package.json
+      - package-lock.json
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Process this branch'
+        required: false
+        type: string
+
+jobs:
+  npm-run-package-and-push: # make sure build/ci work properly
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name }} == 'workflow_dispatch' || ${{ github.event.pull_request.head.repo.owner.login }} == 'git-for-windows'
+    environment: git-for-windows-ci-push
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ inputs.branch }}${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GIT_FOR_WINDOWS_CI_PUSH }}
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run format && git diff-files
+      - run: npm run test
+      - run: npm run package
+      - name: check if commit & push is needed
+        id: check
+        run: |
+          git add -u -- dist/ &&
+          git diff-index --cached --exit-code HEAD -- ||
+          echo "::set-output name=need-to-commit::yes"
+      - name: commit & push
+        if: steps.check.outputs.need-to-commit == 'yes'
+        run: |
+          git config user.name "${{github.actor}}" &&
+          git config user.email "${{github.actor}}@users.noreply.github.com" &&
+          git commit -m 'npm run build && npm run package' -- dist/ &&
+          git update-index --refresh &&
+          git diff-files --exit-code &&
+          git diff-index --cached --exit-code HEAD -- &&
+          git push
