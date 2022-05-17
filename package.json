@@ -42,7 +42,7 @@
     "eslint": "^8.15.0",
     "eslint-plugin-anti-trojan-source": "^1.1.0",
     "eslint-plugin-github": "^4.3.2",
-    "eslint-plugin-jest": "^26.1.5",
+    "eslint-plugin-jest": "^26.2.2",
     "jest": "^27.5.1",
     "jest-circus": "^27.5.1",
     "js-yaml": "^4.1.0",
