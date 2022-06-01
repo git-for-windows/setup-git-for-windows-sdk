@@ -1,6 +1,5 @@
 import fetch from 'node-fetch'
 import {get} from '../src/downloader'
-import {mocked} from 'ts-jest/utils'
 
 const buildIdResponse = {
   count: 1,
@@ -45,9 +44,11 @@ jest.mock('node-fetch')
 const {Response} = jest.requireActual('node-fetch')
 
 test('can obtain build ID', async () => {
-  mocked(fetch).mockReturnValue(
-    Promise.resolve(new Response(JSON.stringify(buildIdResponse)))
-  )
+  jest
+    .mocked(fetch)
+    .mockReturnValue(
+      Promise.resolve(new Response(JSON.stringify(buildIdResponse)))
+    )
   const {id} = await get('minimal', 'x86_64')
   expect(fetch).toHaveBeenCalledTimes(1)
   expect(id).toEqual('git-sdk-64-minimal-71000')
