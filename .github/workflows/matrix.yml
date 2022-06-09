@@ -1,0 +1,37 @@
+name: 'test all artifact flavors'
+on: # since this is expensive, require a manual trigger
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ['minimal', 'makepkg-git', 'build-installers', 'full']
+        architecture: ['i686', 'x86_64']
+        exclude:
+          - flavor: minimal
+            architecture: i686
+          - flavor: makepkg-git
+            architecture: i686
+    steps:
+      - uses: actions/checkout@v3
+      - name: run in-place
+        uses: ./
+        with:
+          flavor: ${{ matrix.flavor }}
+          architecture: ${{ matrix.architecture }}
+      - name: build installer
+        if: matrix.flavor == 'build-installers'
+        shell: bash
+        run: |
+          # clone build-extra
+          git clone --depth 1 --single-branch -b main https://github.com/git-for-windows/build-extra &&
+          # build installer
+          ./build-extra/installer/release.sh --output=$PWD/installer-${{ matrix.architecture }} 0-test
+      - uses: actions/upload-artifact@v2
+        if: matrix.flavor == 'build-installers'
+        with:
+          name: installer-${{ matrix.architecture }}
+          path: installer-${{ matrix.architecture }}
