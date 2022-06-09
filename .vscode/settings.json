@@ -13,11 +13,13 @@
         "artifactsize",
         "autodrain",
         "Backoff",
+        "bitness",
         "mqueue",
         "MSYSTEM",
         "Pacman",
         "unzipper",
         "vercel",
+        "WINDIR",
         "winsymlinks"
     ],
     "git.ignoreLimitWarning": true
