@@ -88,12 +88,16 @@ async function run(): Promise<void> {
     }
 
     const ln = (linkPath: string, target: string): void => {
-      const child = spawnSync('ln.exe', ['-s', target, linkPath], {
-        cwd: outputDirectory,
-        env: {
-          MSYS: 'winsymlinks:sys'
+      const child = spawnSync(
+        flavor === 'minimal' ? 'ln.exe' : 'usr\\bin\\ln.exe',
+        ['-s', target, linkPath],
+        {
+          cwd: outputDirectory,
+          env: {
+            MSYS: 'winsymlinks:sys'
+          }
         }
-      })
+      )
       if (child.error) throw child.error
     }
     for (const [linkPath, target] of Object.entries({
