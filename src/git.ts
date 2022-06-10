@@ -5,6 +5,17 @@ import {delimiter} from 'path'
 
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
 
+/*
+ * It looks a bit ridiculous to use 56 workers on a build agent that has only
+ * a two-core CPU, yet manual testing revealed that 64 workers would be _even
+ * better_. But at 92 workers, resources are starved so much that the checkout
+ * is not only much faster, but also fails.
+ *
+ * Let's stick with 56, which should avoid running out of resources, but still
+ * is much faster than, say, using only 2 workers.
+ */
+const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`
+
 async function clone(
   url: string,
   destination: string,
@@ -24,6 +35,9 @@ async function clone(
       destination
     ],
     {
+      env: {
+        GIT_CONFIG_PARAMETERS
+      },
       stdio: [undefined, 'inherit', 'inherit']
     }
   )
@@ -85,6 +99,9 @@ export async function getViaGit(
           'git.exe',
           [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, id],
           {
+            env: {
+              GIT_CONFIG_PARAMETERS
+            },
             stdio: [undefined, 'inherit', 'inherit']
           }
         )
@@ -112,6 +129,7 @@ export async function getViaGit(
           ],
           {
             env: {
+              GIT_CONFIG_PARAMETERS,
               COMSPEC:
                 process.env.COMSPEC ||
                 `${process.env.WINDIR}\\system32\\cmd.exe`,
