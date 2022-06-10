@@ -9,6 +9,8 @@ on:
     paths:
       - package.json
       - package-lock.json
+    branches:
+      - 'dependabot/**'
   workflow_dispatch:
     inputs:
       branch:
