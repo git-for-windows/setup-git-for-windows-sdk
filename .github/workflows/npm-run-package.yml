@@ -1,14 +1,7 @@
 name: 'npm run package'
 # Main use case: repackage when Dependabot updates a dependency
 on:
-  pull_request_target:
-    types:
-      - opened
-      - reopened
-      - synchronize
-    paths:
-      - package.json
-      - package-lock.json
+  push:
     branches:
       - 'dependabot/**'
   workflow_dispatch:
@@ -21,13 +14,13 @@ on:
 jobs:
   npm-run-package-and-push: # make sure build/ci work properly
     runs-on: ubuntu-latest
-    if: ${{ github.event_name }} == 'workflow_dispatch' || ${{ github.event.pull_request.head.repo.owner.login }} == 'git-for-windows'
+    if: github.event_name == 'workflow_dispatch' || github.event.repository.owner.login == 'git-for-windows'
     environment: git-for-windows-ci-push
     steps:
       - uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ inputs.branch }}${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.repository.full_name }}
+          ref: ${{ inputs.branch }}${{ github.event.ref }}
           token: ${{ secrets.GIT_FOR_WINDOWS_CI_PUSH }}
       - run: npm ci
       - run: npm run build
