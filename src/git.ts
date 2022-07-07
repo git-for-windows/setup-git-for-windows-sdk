@@ -69,12 +69,24 @@ export async function getViaGit(
   const artifactName = `${repo}-${flavor}`
 
   const octokit = new Octokit()
-  const info = await octokit.repos.getBranch({
-    owner,
-    repo,
-    branch: 'main'
-  })
-  const id = info.data.commit.sha
+  let id: string
+  if (flavor === 'minimal') {
+    const info = await octokit.actions.listWorkflowRuns({
+      owner,
+      repo,
+      workflow_id: 938271,
+      status: 'success',
+      per_page: 1
+    })
+    id = info.data.workflow_runs[0].head_sha
+  } else {
+    const info = await octokit.repos.getBranch({
+      owner,
+      repo,
+      branch: 'main'
+    })
+    id = info.data.commit.sha
+  }
   core.notice(`Got ID ${id} for ${repo}`)
 
   return {
