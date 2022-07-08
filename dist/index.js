@@ -220,6 +220,7 @@ const child_process_1 = __nccwpck_require__(2081);
 const rest_1 = __nccwpck_require__(5375);
 const path_1 = __nccwpck_require__(1017);
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin';
+const gitExePath = 'C:/Program Files/Git/cmd/git.exe';
 /*
  * It looks a bit ridiculous to use 56 workers on a build agent that has only
  * a two-core CPU, yet manual testing revealed that 64 workers would be _even
@@ -234,7 +235,7 @@ function clone(url, destination, verbose, cloneExtraOptions = []) {
     return __awaiter(this, void 0, void 0, function* () {
         if (verbose)
             core.notice(`Cloning ${url} to ${destination}`);
-        const child = (0, child_process_1.spawn)('git.exe', [
+        const child = (0, child_process_1.spawn)(gitExePath, [
             'clone',
             '--depth=1',
             '--single-branch',
@@ -302,7 +303,7 @@ function getViaGit(flavor, architecture) {
                 let child;
                 if (flavor === 'full') {
                     core.startGroup(`Checking out ${repo}`);
-                    child = (0, child_process_1.spawn)('git.exe', [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha], {
+                    child = (0, child_process_1.spawn)(gitExePath, [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha], {
                         env: {
                             GIT_CONFIG_PARAMETERS
                         },
