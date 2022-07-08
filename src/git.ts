@@ -69,13 +69,26 @@ export async function getViaGit(
   const artifactName = `${repo}-${flavor}`
 
   const octokit = new Octokit()
-  const info = await octokit.repos.getBranch({
-    owner,
-    repo,
-    branch: 'main'
-  })
-  const id = info.data.commit.sha
-  core.notice(`Got ID ${id} for ${repo}`)
+  let head_sha: string
+  if (flavor === 'minimal') {
+    const info = await octokit.actions.listWorkflowRuns({
+      owner,
+      repo,
+      workflow_id: 938271,
+      status: 'success',
+      per_page: 1
+    })
+    head_sha = info.data.workflow_runs[0].head_sha
+  } else {
+    const info = await octokit.repos.getBranch({
+      owner,
+      repo,
+      branch: 'main'
+    })
+    head_sha = info.data.commit.sha
+  }
+  const id = `${artifactName}-${head_sha}`
+  core.notice(`Got commit ${head_sha} for ${repo}`)
 
   return {
     artifactName,
@@ -97,7 +110,7 @@ export async function getViaGit(
         core.startGroup(`Checking out ${repo}`)
         child = spawn(
           'git.exe',
-          [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, id],
+          [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha],
           {
             env: {
               GIT_CONFIG_PARAMETERS

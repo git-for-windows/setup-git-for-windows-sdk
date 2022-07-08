@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {get, mkdirp} from './src/downloader'
+import {mkdirp} from './src/downloader'
 import {restoreCache, saveCache} from '@actions/cache'
 import process from 'process'
 import {spawnSync} from 'child_process'
@@ -18,10 +18,7 @@ async function run(): Promise<void> {
     const verbose = core.getInput('verbose')
     const msysMode = core.getInput('msys') === 'true'
 
-    const {artifactName, download, id} =
-      flavor === 'minimal'
-        ? await get(flavor, architecture)
-        : await getViaGit(flavor, architecture)
+    const {artifactName, download, id} = await getViaGit(flavor, architecture)
     const outputDirectory = core.getInput('path') || `C:/${artifactName}`
     let useCache: boolean
     switch (core.getInput('cache')) {
