@@ -4,6 +4,7 @@ import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
 
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
+const gitExePath = 'C:/Program Files/Git/cmd/git.exe'
 
 /*
  * It looks a bit ridiculous to use 56 workers on a build agent that has only
@@ -24,7 +25,7 @@ async function clone(
 ): Promise<void> {
   if (verbose) core.notice(`Cloning ${url} to ${destination}`)
   const child = spawn(
-    'git.exe',
+    gitExePath,
     [
       'clone',
       '--depth=1',
@@ -109,7 +110,7 @@ export async function getViaGit(
       if (flavor === 'full') {
         core.startGroup(`Checking out ${repo}`)
         child = spawn(
-          'git.exe',
+          gitExePath,
           [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha],
           {
             env: {
