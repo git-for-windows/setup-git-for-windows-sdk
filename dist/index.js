@@ -219,6 +219,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const child_process_1 = __nccwpck_require__(2081);
 const rest_1 = __nccwpck_require__(5375);
 const path_1 = __nccwpck_require__(1017);
+const fs = __importStar(__nccwpck_require__(7147));
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin';
 const gitExePath = 'C:/Program Files/Git/cmd/git.exe';
 /*
@@ -341,7 +342,7 @@ function getViaGit(flavor, architecture) {
                     child.on('close', code => {
                         core.endGroup();
                         if (code === 0) {
-                            resolve();
+                            fs.rm('.tmp', { recursive: true }, () => resolve());
                         }
                         else {
                             reject(new Error(`process exited with code ${code}`));
