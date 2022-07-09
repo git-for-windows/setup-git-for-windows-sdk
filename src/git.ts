@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import {ChildProcess, spawn} from 'child_process'
 import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
+import * as fs from 'fs'
 
 const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
 const gitExePath = 'C:/Program Files/Git/cmd/git.exe'
@@ -160,7 +161,7 @@ export async function getViaGit(
         child.on('close', code => {
           core.endGroup()
           if (code === 0) {
-            resolve()
+            fs.rm('.tmp', {recursive: true}, () => resolve())
           } else {
             reject(new Error(`process exited with code ${code}`))
           }
