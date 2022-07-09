@@ -42,7 +42,8 @@ jobs:
       - name: Verify that the Bash of Git for Windows' SDK is used
         shell: bash
         run: |
-          set -x
+          set -ex
+          test ! -e .tmp
           echo "This is the MSYS2 pseudo root: $(cygpath -aw /)"
           test "gcc is /mingw64/bin/gcc" = "$(type gcc)"
           test "prove is /usr/bin/core_perl/prove" = "$(type prove)"
