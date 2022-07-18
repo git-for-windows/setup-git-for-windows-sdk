@@ -35,7 +35,7 @@
     "unzipper": "^0.10.11"
   },
   "devDependencies": {
-    "@types/jest": "^28.1.5",
+    "@types/jest": "^28.1.6",
     "@types/node": "^18.0.4",
     "@types/unzipper": "^0.10.5",
     "@typescript-eslint/parser": "^5.30.6",
