@@ -4,8 +4,15 @@ import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
 import * as fs from 'fs'
 
-export const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
-const gitExePath = 'C:/Program Files/Git/cmd/git.exe'
+// If present, do prefer the build agent's copy of Git
+const externalsGitDir = `${process.env.AGENT_HOMEDIRECTORY}/externals/git`
+const gitForWindowsRoot = 'C:/Program Files/Git'
+const gitRoot = fs.existsSync(externalsGitDir)
+  ? externalsGitDir
+  : gitForWindowsRoot
+
+export const gitForWindowsUsrBinPath = `${gitRoot}/usr/bin`
+const gitExePath = `${gitRoot}/cmd/git.exe`
 
 /*
  * It looks a bit ridiculous to use 56 workers on a build agent that has only
