@@ -21,6 +21,10 @@ inputs:
     required: false
     description: 'Where to write the SDK files'
     default: ''
+  cleanup:
+    required: false
+    description: 'Whether to clean up SDK files. This is only needed on self-hosted runners that are reused for multiple jobs.'
+    default: 'false'
   verbose:
     required: false
     description: 'Whether to log files as they are extracted'
@@ -32,3 +36,4 @@ inputs:
 runs:
   using: 'node16'
   main: 'dist/index.js'
+  post: 'dist/index.js'

@@ -72,6 +72,10 @@ To accelerate this Action, artifacts are cached once downloaded. This can be tur
 
 In practice, caching the `full` artifacts does not provide much of a speed-up. Instead, it slows it down by spending extra minutes on caching the artifact. Therefore, caching is disabled for the `full` artifacts by default, corresponding to `cache: auto`.
 
+### Clean-up
+
+On self-hosted runners, the SDK files persist after the workflow run is done. To remove these files, set the input parameter `cleanup` to `true`.
+
 ## Developing _this_ Action
 
 > First, you'll need to have a reasonably modern version of `node` handy, such as Node 12.
