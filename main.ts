@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import {mkdirp} from './src/downloader'
 import {restoreCache, saveCache} from '@actions/cache'
 import process from 'process'
-import {spawnSync} from 'child_process'
+import {spawn, spawnSync} from 'child_process'
 import {
   getArtifactMetadata,
   getViaGit,
@@ -14,6 +14,61 @@ import * as coreCommand from '@actions/core/lib/command'
 const flavor = core.getInput('flavor')
 const architecture = core.getInput('architecture')
 
+async function installArm64Dependencies(
+  outputDirectory: string
+): Promise<void> {
+  if (flavor === 'minimal') {
+    throw new Error(`ARM64 not yet supported with flavor '${flavor}`)
+  }
+
+  mkdirp(`${outputDirectory}/clangarm64`)
+  fs.appendFileSync(
+    `${outputDirectory}/etc/pacman.conf`,
+    `
+    [clangarm64]
+    Server = https://mirror.msys2.org/mingw/clangarm64/`
+  )
+
+  const packages = [
+    'base-devel',
+    'mingw-w64-clang-aarch64-openssl',
+    'mingw-w64-clang-aarch64-zlib',
+    'mingw-w64-clang-aarch64-curl',
+    'mingw-w64-clang-aarch64-expat',
+    'mingw-w64-clang-aarch64-libiconv',
+    'mingw-w64-clang-aarch64-pcre2',
+    'mingw-w64-clang-aarch64-libssp'
+  ]
+  if (flavor === 'full' || flavor === 'makepkg-git') {
+    packages.push(
+      'mingw-w64-clang-aarch64-toolchain',
+      'mingw-w64-clang-aarch64-asciidoc'
+    )
+  }
+
+  const child = spawn('pacman.exe', ['-Sy', '--noconfirm', ...packages])
+
+  child.stdout.setEncoding('utf-8')
+  child.stderr.setEncoding('utf-8')
+
+  child.stdout.on('data', data => {
+    core.info(data)
+  })
+
+  child.stderr.on('data', data => {
+    core.error(data)
+  })
+
+  return new Promise((resolve, reject) => {
+    child.on('error', error => reject(error))
+    child.on('close', status =>
+      status === 0
+        ? resolve()
+        : reject(new Error(`Process exited with status code ${status}`))
+    )
+  })
+}
+
 async function run(): Promise<void> {
   try {
     if (process.platform !== 'win32') {
@@ -22,10 +77,16 @@ async function run(): Promise<void> {
       )
       return
     }
+
+    const architectureToDownload =
+      architecture === 'aarch64' ? 'x86_64' : architecture
     const verbose = core.getInput('verbose')
     const msysMode = core.getInput('msys') === 'true'
 
-    const {artifactName, download, id} = await getViaGit(flavor, architecture)
+    const {artifactName, download, id} = await getViaGit(
+      flavor,
+      architectureToDownload
+    )
     const outputDirectory = core.getInput('path') || `C:/${artifactName}`
     let useCache: boolean
     switch (core.getInput('cache')) {
@@ -68,7 +129,17 @@ async function run(): Promise<void> {
       }
     }
 
-    const mingw = architecture === 'i686' ? 'MINGW32' : 'MINGW64'
+    const mingw = {
+      i686: 'MINGW32',
+      x86_64: 'MINGW64',
+      aarch64: 'CLANGARM64'
+    }[architecture]
+
+    if (mingw === undefined) {
+      core.setFailed(`Invalid architecture ${architecture} specified`)
+      return
+    }
+
     const msystem = msysMode ? 'MSYS' : mingw
 
     const binPaths = [
@@ -77,6 +148,13 @@ async function run(): Promise<void> {
       '/usr/bin',
       `/${mingw.toLocaleLowerCase()}/bin`
     ]
+
+    if (architecture === 'aarch64') {
+      // Some binaries aren't available yet in the /clangarm64/bin folder, but Windows 11 ARM64
+      // has support for x64 emulation, so let's add /mingw64/bin as a fallback.
+      binPaths.splice(binPaths.length - 1, 0, '/mingw64/bin')
+    }
+
     for (const binPath of msysMode ? binPaths.reverse() : binPaths) {
       core.addPath(`${outputDirectory}${binPath}`)
     }
@@ -115,6 +193,13 @@ async function run(): Promise<void> {
       stderr: 'fd/2'
     })) {
       ln(`/dev/${linkPath}`, `/proc/self/${target}`)
+    }
+
+    if (msystem === 'CLANGARM64') {
+      // ARM64 dependencies aren't included yet in the Git for Windows SDK. Ask Pacman to install them.
+      core.startGroup(`Installing CLANGARM64 dependencies`)
+      await installArm64Dependencies(outputDirectory)
+      core.endGroup()
     }
   } catch (error) {
     core.setFailed(error instanceof Error ? error.message : `${error}`)

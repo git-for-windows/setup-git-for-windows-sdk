@@ -51,7 +51,7 @@ The supported flavors are:
 
 ### CPU architecture support
 
-Git for Windows SDK comes in variants  targeting `x86_64` (AKA "64-bit") and `i686` (AKA 32-bit). The default is `x86_64` and can be overridden like this:
+Git for Windows SDK comes in variants targeting `x86_64` (AKA "64-bit") and `i686` (AKA 32-bit). The default is `x86_64` and can be overridden like this:
 
 ```yaml
 - uses: git-for-windows/setup-git-for-windows-sdk
@@ -61,6 +61,8 @@ Git for Windows SDK comes in variants  targeting `x86_64` (AKA "64-bit") and `i6
 ```
 
 Please note that only the `build-installers` and the `full` flavors are available for `i686`.
+
+As a special case, the architecture `aarch64` (AKA "ARM64") is also handled, even if there is no SDK fully targeting Windows/ARM64 (due to missing Cygwin/MSYS support for that architecture); Selecting this architecture will install the `x86_64` flavor of Git for Windows' SDK and then add the MINGW toolchain targeting Windows/ARM64.
 
 ### Verbosity
 

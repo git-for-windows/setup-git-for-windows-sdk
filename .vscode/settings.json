@@ -1,12 +1,17 @@
 {
     "cSpell.ignoreRegExpList": [
+        "--noconfirm",
         "CHERE_INVOKING",
         "LC_CTYPE",
         "SDK's",
+        "aarch64",
+        "base-devel",
+        "clangarm64",
         "makepkg-git",
         "mingw-w64-git",
         "mingw32",
         "mingw64",
+        "pcre2",
         "vstfs://.*"
     ],
     "cSpell.words": [
@@ -14,7 +19,11 @@
         "autodrain",
         "Backoff",
         "bitness",
+        "Cygwin",
+        "libiconv",
+        "libssp",
         "mqueue",
+        "MSYS",
         "MSYSTEM",
         "Pacman",
         "unzipper",
