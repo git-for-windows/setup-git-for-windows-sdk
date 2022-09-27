@@ -3,7 +3,16 @@ import {mkdirp} from './src/downloader'
 import {restoreCache, saveCache} from '@actions/cache'
 import process from 'process'
 import {spawnSync} from 'child_process'
-import {getViaGit} from './src/git'
+import {
+  getArtifactMetadata,
+  getViaGit,
+  gitForWindowsUsrBinPath
+} from './src/git'
+import * as fs from 'fs'
+import * as coreCommand from '@actions/core/lib/command'
+
+const flavor = core.getInput('flavor')
+const architecture = core.getInput('architecture')
 
 async function run(): Promise<void> {
   try {
@@ -13,8 +22,6 @@ async function run(): Promise<void> {
       )
       return
     }
-    const flavor = core.getInput('flavor')
-    const architecture = core.getInput('architecture')
     const verbose = core.getInput('verbose')
     const msysMode = core.getInput('msys') === 'true'
 
@@ -114,4 +121,63 @@ async function run(): Promise<void> {
   }
 }
 
-run()
+function cleanup(): void {
+  if (core.getInput('cleanup') !== 'true') {
+    core.info(
+      `Won't clean up SDK files as the 'cleanup' input was not provided or doesn't equal 'true'.`
+    )
+    return
+  }
+
+  const outputDirectory =
+    core.getInput('path') ||
+    `C:/${getArtifactMetadata(flavor, architecture).artifactName}`
+
+  /**
+   * Shelling out to `rm -rf` is more than twice as fast as Node's `fs.rmSync` method.
+   * Let's use it if it's available, and otherwise fall back to `fs.rmSync`.
+   */
+  const cleanupMethod = fs.existsSync(`${gitForWindowsUsrBinPath}/bash.exe`)
+    ? 'rm -rf'
+    : 'node'
+
+  core.info(
+    `Cleaning up ${outputDirectory} using the "${cleanupMethod}" method...`
+  )
+
+  if (cleanupMethod === 'rm -rf') {
+    const child = spawnSync(
+      `${gitForWindowsUsrBinPath}/bash.exe`,
+      ['-c', `rm -rf "${outputDirectory}"`],
+      {
+        encoding: 'utf-8',
+        env: {PATH: '/usr/bin'}
+      }
+    )
+
+    if (child.error) throw child.error
+    if (child.stderr) core.error(child.stderr)
+  } else {
+    fs.rmSync(outputDirectory, {recursive: true, force: true})
+  }
+
+  core.info(`Finished cleaning up ${outputDirectory}.`)
+}
+
+/**
+ * Indicates whether the POST action is running
+ */
+export const isPost = !!process.env['STATE_isPost']
+
+if (!isPost) {
+  run()
+  /*
+   * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
+   * This is necessary since we don't have a separate entry point.
+   * Inspired by https://github.com/actions/checkout/blob/v3.0.2/src/state-helper.ts#L69-L71
+   */
+  coreCommand.issueCommand('save-state', {name: 'isPost'}, 'true')
+} else {
+  // If the POST action is running, we cleanup our artifacts
+  cleanup()
+}

@@ -42,12 +42,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.isPost = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const downloader_1 = __nccwpck_require__(7511);
 const cache_1 = __nccwpck_require__(7799);
 const process_1 = __importDefault(__nccwpck_require__(7282));
 const child_process_1 = __nccwpck_require__(2081);
 const git_1 = __nccwpck_require__(4647);
+const fs = __importStar(__nccwpck_require__(7147));
+const coreCommand = __importStar(__nccwpck_require__(7351));
+const flavor = core.getInput('flavor');
+const architecture = core.getInput('architecture');
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -55,8 +60,6 @@ function run() {
                 core.warning(`Skipping this Action because it only works on Windows, not on ${process_1.default.platform}`);
                 return;
             }
-            const flavor = core.getInput('flavor');
-            const architecture = core.getInput('architecture');
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';
             const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architecture);
@@ -140,7 +143,53 @@ function run() {
         }
     });
 }
-run();
+function cleanup() {
+    if (core.getInput('cleanup') !== 'true') {
+        core.info(`Won't clean up SDK files as the 'cleanup' input was not provided or doesn't equal 'true'.`);
+        return;
+    }
+    const outputDirectory = core.getInput('path') ||
+        `C:/${(0, git_1.getArtifactMetadata)(flavor, architecture).artifactName}`;
+    /**
+     * Shelling out to `rm -rf` is more than twice as fast as Node's `fs.rmSync` method.
+     * Let's use it if it's available, and otherwise fall back to `fs.rmSync`.
+     */
+    const cleanupMethod = fs.existsSync(`${git_1.gitForWindowsUsrBinPath}/bash.exe`)
+        ? 'rm -rf'
+        : 'node';
+    core.info(`Cleaning up ${outputDirectory} using the "${cleanupMethod}" method...`);
+    if (cleanupMethod === 'rm -rf') {
+        const child = (0, child_process_1.spawnSync)(`${git_1.gitForWindowsUsrBinPath}/bash.exe`, ['-c', `rm -rf "${outputDirectory}"`], {
+            encoding: 'utf-8',
+            env: { PATH: '/usr/bin' }
+        });
+        if (child.error)
+            throw child.error;
+        if (child.stderr)
+            core.error(child.stderr);
+    }
+    else {
+        fs.rmSync(outputDirectory, { recursive: true, force: true });
+    }
+    core.info(`Finished cleaning up ${outputDirectory}.`);
+}
+/**
+ * Indicates whether the POST action is running
+ */
+exports.isPost = !!process_1.default.env['STATE_isPost'];
+if (!exports.isPost) {
+    run();
+    /*
+     * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
+     * This is necessary since we don't have a separate entry point.
+     * Inspired by https://github.com/actions/checkout/blob/v3.0.2/src/state-helper.ts#L69-L71
+     */
+    coreCommand.issueCommand('save-state', { name: 'isPost' }, 'true');
+}
+else {
+    // If the POST action is running, we cleanup our artifacts
+    cleanup();
+}
 
 
 /***/ }),
@@ -214,13 +263,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getViaGit = void 0;
+exports.getViaGit = exports.getArtifactMetadata = exports.gitForWindowsUsrBinPath = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const child_process_1 = __nccwpck_require__(2081);
 const rest_1 = __nccwpck_require__(5375);
 const path_1 = __nccwpck_require__(1017);
 const fs = __importStar(__nccwpck_require__(7147));
-const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin';
+exports.gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin';
 const gitExePath = 'C:/Program Files/Git/cmd/git.exe';
 /*
  * It looks a bit ridiculous to use 56 workers on a build agent that has only
@@ -232,6 +281,13 @@ const gitExePath = 'C:/Program Files/Git/cmd/git.exe';
  * is much faster than, say, using only 2 workers.
  */
 const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`;
+function getArtifactMetadata(flavor, architecture) {
+    const bitness = architecture === 'i686' ? '32' : '64';
+    const repo = `git-sdk-${bitness}`;
+    const artifactName = `${repo}-${flavor}`;
+    return { bitness, repo, artifactName };
+}
+exports.getArtifactMetadata = getArtifactMetadata;
 function clone(url, destination, verbose, cloneExtraOptions = []) {
     return __awaiter(this, void 0, void 0, function* () {
         if (verbose)
@@ -264,10 +320,8 @@ function clone(url, destination, verbose, cloneExtraOptions = []) {
 }
 function getViaGit(flavor, architecture) {
     return __awaiter(this, void 0, void 0, function* () {
-        const bitness = architecture === 'i686' ? '32' : '64';
         const owner = 'git-for-windows';
-        const repo = `git-sdk-${bitness}`;
-        const artifactName = `${repo}-${flavor}`;
+        const { bitness, repo, artifactName } = getArtifactMetadata(flavor, architecture);
         const octokit = new rest_1.Octokit();
         let head_sha;
         if (flavor === 'minimal') {
@@ -317,7 +371,7 @@ function getViaGit(flavor, architecture) {
                     core.endGroup();
                     core.startGroup(`Creating ${flavor} artifact`);
                     const traceArg = verbose ? ['-x'] : [];
-                    child = (0, child_process_1.spawn)(`${gitForWindowsUsrBinPath}/bash.exe`, [
+                    child = (0, child_process_1.spawn)(`${exports.gitForWindowsUsrBinPath}/bash.exe`, [
                         ...traceArg,
                         '.tmp/build-extra/please.sh',
                         'create-sdk-artifact',
@@ -333,7 +387,7 @@ function getViaGit(flavor, architecture) {
                             LC_CTYPE: 'C.UTF-8',
                             CHERE_INVOKING: '1',
                             MSYSTEM: 'MINGW64',
-                            PATH: `${gitForWindowsUsrBinPath}${path_1.delimiter}${process.env.PATH}`
+                            PATH: `${exports.gitForWindowsUsrBinPath}${path_1.delimiter}${process.env.PATH}`
                         },
                         stdio: [undefined, 'inherit', 'inherit']
                     });

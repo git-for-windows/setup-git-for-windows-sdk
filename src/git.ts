@@ -4,7 +4,7 @@ import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
 import * as fs from 'fs'
 
-const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
+export const gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin'
 const gitExePath = 'C:/Program Files/Git/cmd/git.exe'
 
 /*
@@ -17,6 +17,17 @@ const gitExePath = 'C:/Program Files/Git/cmd/git.exe'
  * is much faster than, say, using only 2 workers.
  */
 const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`
+
+export function getArtifactMetadata(
+  flavor: string,
+  architecture: string
+): {bitness: string; repo: string; artifactName: string} {
+  const bitness = architecture === 'i686' ? '32' : '64'
+  const repo = `git-sdk-${bitness}`
+  const artifactName = `${repo}-${flavor}`
+
+  return {bitness, repo, artifactName}
+}
 
 async function clone(
   url: string,
@@ -65,10 +76,12 @@ export async function getViaGit(
     verbose?: number | boolean
   ) => Promise<void>
 }> {
-  const bitness = architecture === 'i686' ? '32' : '64'
   const owner = 'git-for-windows'
-  const repo = `git-sdk-${bitness}`
-  const artifactName = `${repo}-${flavor}`
+
+  const {bitness, repo, artifactName} = getArtifactMetadata(
+    flavor,
+    architecture
+  )
 
   const octokit = new Octokit()
   let head_sha: string
