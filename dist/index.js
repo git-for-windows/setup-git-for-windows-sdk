@@ -50,7 +50,6 @@ const process_1 = __importDefault(__nccwpck_require__(7282));
 const child_process_1 = __nccwpck_require__(2081);
 const git_1 = __nccwpck_require__(4647);
 const fs = __importStar(__nccwpck_require__(7147));
-const coreCommand = __importStar(__nccwpck_require__(7351));
 const flavor = core.getInput('flavor');
 const architecture = core.getInput('architecture');
 function installArm64Dependencies(outputDirectory) {
@@ -235,15 +234,15 @@ function cleanup() {
 /**
  * Indicates whether the POST action is running
  */
-exports.isPost = !!process_1.default.env['STATE_isPost'];
+exports.isPost = !!core.getState('isPost');
 if (!exports.isPost) {
     run();
     /*
      * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
      * This is necessary since we don't have a separate entry point.
-     * Inspired by https://github.com/actions/checkout/blob/v3.0.2/src/state-helper.ts#L69-L71
+     * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
      */
-    coreCommand.issueCommand('save-state', { name: 'isPost' }, 'true');
+    core.saveState('isPost', 'true');
 }
 else {
     // If the POST action is running, we cleanup our artifacts
@@ -328,8 +327,14 @@ const child_process_1 = __nccwpck_require__(2081);
 const rest_1 = __nccwpck_require__(5375);
 const path_1 = __nccwpck_require__(1017);
 const fs = __importStar(__nccwpck_require__(7147));
-exports.gitForWindowsUsrBinPath = 'C:/Program Files/Git/usr/bin';
-const gitExePath = 'C:/Program Files/Git/cmd/git.exe';
+// If present, do prefer the build agent's copy of Git
+const externalsGitDir = `${process.env.AGENT_HOMEDIRECTORY}/externals/git`;
+const gitForWindowsRoot = 'C:/Program Files/Git';
+const gitRoot = fs.existsSync(externalsGitDir)
+    ? externalsGitDir
+    : gitForWindowsRoot;
+exports.gitForWindowsUsrBinPath = `${gitRoot}/usr/bin`;
+const gitExePath = `${gitRoot}/cmd/git.exe`;
 /*
  * It looks a bit ridiculous to use 56 workers on a build agent that has only
  * a two-core CPU, yet manual testing revealed that 64 workers would be _even
