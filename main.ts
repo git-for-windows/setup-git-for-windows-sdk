@@ -9,7 +9,6 @@ import {
   gitForWindowsUsrBinPath
 } from './src/git'
 import * as fs from 'fs'
-import * as coreCommand from '@actions/core/lib/command'
 
 const flavor = core.getInput('flavor')
 const architecture = core.getInput('architecture')
@@ -252,16 +251,16 @@ function cleanup(): void {
 /**
  * Indicates whether the POST action is running
  */
-export const isPost = !!process.env['STATE_isPost']
+export const isPost = !!core.getState('isPost')
 
 if (!isPost) {
   run()
   /*
    * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
    * This is necessary since we don't have a separate entry point.
-   * Inspired by https://github.com/actions/checkout/blob/v3.0.2/src/state-helper.ts#L69-L71
+   * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
    */
-  coreCommand.issueCommand('save-state', {name: 'isPost'}, 'true')
+  core.saveState('isPost', 'true')
 } else {
   // If the POST action is running, we cleanup our artifacts
   cleanup()
