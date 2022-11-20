@@ -355,7 +355,7 @@ exports.getArtifactMetadata = getArtifactMetadata;
 function clone(url, destination, verbose, cloneExtraOptions = []) {
     return __awaiter(this, void 0, void 0, function* () {
         if (verbose)
-            core.notice(`Cloning ${url} to ${destination}`);
+            core.info(`Cloning ${url} to ${destination}`);
         const child = (0, child_process_1.spawn)(gitExePath, [
             'clone',
             '--depth=1',
@@ -407,7 +407,7 @@ function getViaGit(flavor, architecture) {
             head_sha = info.data.commit.sha;
         }
         const id = `${artifactName}-${head_sha}`;
-        core.notice(`Got commit ${head_sha} for ${repo}`);
+        core.info(`Got commit ${head_sha} for ${repo}`);
         return {
             artifactName,
             id,

@@ -42,7 +42,7 @@ async function clone(
   verbose: number | boolean,
   cloneExtraOptions: string[] = []
 ): Promise<void> {
-  if (verbose) core.notice(`Cloning ${url} to ${destination}`)
+  if (verbose) core.info(`Cloning ${url} to ${destination}`)
   const child = spawn(
     gitExePath,
     [
@@ -110,7 +110,7 @@ export async function getViaGit(
     head_sha = info.data.commit.sha
   }
   const id = `${artifactName}-${head_sha}`
-  core.notice(`Got commit ${head_sha} for ${repo}`)
+  core.info(`Got commit ${head_sha} for ${repo}`)
 
   return {
     artifactName,
