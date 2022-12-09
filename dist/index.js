@@ -99,9 +99,10 @@ function run() {
                 return;
             }
             const architectureToDownload = architecture === 'aarch64' ? 'x86_64' : architecture;
+            const githubToken = core.getInput('github-token');
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';
-            const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architectureToDownload);
+            const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architectureToDownload, githubToken);
             const outputDirectory = core.getInput('path') || `C:/${artifactName}`;
             let useCache;
             switch (core.getInput('cache')) {
@@ -382,11 +383,11 @@ function clone(url, destination, verbose, cloneExtraOptions = []) {
         });
     });
 }
-function getViaGit(flavor, architecture) {
+function getViaGit(flavor, architecture, githubToken) {
     return __awaiter(this, void 0, void 0, function* () {
         const owner = 'git-for-windows';
         const { bitness, repo, artifactName } = getArtifactMetadata(flavor, architecture);
-        const octokit = new rest_1.Octokit();
+        const octokit = githubToken ? new rest_1.Octokit({ auth: githubToken }) : new rest_1.Octokit();
         let head_sha;
         if (flavor === 'minimal') {
             const info = yield octokit.actions.listWorkflowRuns({

@@ -79,12 +79,14 @@ async function run(): Promise<void> {
 
     const architectureToDownload =
       architecture === 'aarch64' ? 'x86_64' : architecture
+    const githubToken = core.getInput('github-token')
     const verbose = core.getInput('verbose')
     const msysMode = core.getInput('msys') === 'true'
 
     const {artifactName, download, id} = await getViaGit(
       flavor,
-      architectureToDownload
+      architectureToDownload,
+      githubToken
     )
     const outputDirectory = core.getInput('path') || `C:/${artifactName}`
     let useCache: boolean

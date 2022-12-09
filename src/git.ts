@@ -74,7 +74,8 @@ async function clone(
 
 export async function getViaGit(
   flavor: string,
-  architecture: string
+  architecture: string,
+  githubToken?: string
 ): Promise<{
   artifactName: string
   id: string
@@ -90,7 +91,7 @@ export async function getViaGit(
     architecture
   )
 
-  const octokit = new Octokit()
+  const octokit = githubToken ? new Octokit({auth: githubToken}) : new Octokit()
   let head_sha: string
   if (flavor === 'minimal') {
     const info = await octokit.actions.listWorkflowRuns({
