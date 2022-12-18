@@ -71,7 +71,9 @@ function installArm64Dependencies(outputDirectory) {
             'mingw-w64-clang-aarch64-pcre2',
             'mingw-w64-clang-aarch64-libssp'
         ];
-        if (flavor === 'full' || flavor === 'makepkg-git') {
+        if (flavor === 'full' ||
+            flavor === 'makepkg-git' ||
+            flavor === 'build-installers') {
             packages.push('mingw-w64-clang-aarch64-toolchain', 'mingw-w64-clang-aarch64-asciidoc');
         }
         const child = (0, child_process_1.spawn)('pacman.exe', ['-Sy', '--noconfirm', ...packages]);

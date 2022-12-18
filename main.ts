@@ -38,7 +38,11 @@ async function installArm64Dependencies(
     'mingw-w64-clang-aarch64-pcre2',
     'mingw-w64-clang-aarch64-libssp'
   ]
-  if (flavor === 'full' || flavor === 'makepkg-git') {
+  if (
+    flavor === 'full' ||
+    flavor === 'makepkg-git' ||
+    flavor === 'build-installers'
+  ) {
     packages.push(
       'mingw-w64-clang-aarch64-toolchain',
       'mingw-w64-clang-aarch64-asciidoc'
