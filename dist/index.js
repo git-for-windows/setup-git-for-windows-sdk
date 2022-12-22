@@ -52,47 +52,6 @@ const git_1 = __nccwpck_require__(4647);
 const fs = __importStar(__nccwpck_require__(7147));
 const flavor = core.getInput('flavor');
 const architecture = core.getInput('architecture');
-function installArm64Dependencies(outputDirectory) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (flavor === 'minimal') {
-            throw new Error(`ARM64 not yet supported with flavor '${flavor}`);
-        }
-        (0, downloader_1.mkdirp)(`${outputDirectory}/clangarm64`);
-        fs.appendFileSync(`${outputDirectory}/etc/pacman.conf`, `
-    [clangarm64]
-    Server = https://mirror.msys2.org/mingw/clangarm64/`);
-        const packages = [
-            'base-devel',
-            'mingw-w64-clang-aarch64-openssl',
-            'mingw-w64-clang-aarch64-zlib',
-            'mingw-w64-clang-aarch64-curl',
-            'mingw-w64-clang-aarch64-expat',
-            'mingw-w64-clang-aarch64-libiconv',
-            'mingw-w64-clang-aarch64-pcre2',
-            'mingw-w64-clang-aarch64-libssp'
-        ];
-        if (flavor === 'full' ||
-            flavor === 'makepkg-git' ||
-            flavor === 'build-installers') {
-            packages.push('mingw-w64-clang-aarch64-toolchain', 'mingw-w64-clang-aarch64-asciidoc');
-        }
-        const child = (0, child_process_1.spawn)('pacman.exe', ['-Sy', '--noconfirm', ...packages]);
-        child.stdout.setEncoding('utf-8');
-        child.stderr.setEncoding('utf-8');
-        child.stdout.on('data', data => {
-            core.info(data);
-        });
-        child.stderr.on('data', data => {
-            core.error(data);
-        });
-        return new Promise((resolve, reject) => {
-            child.on('error', error => reject(error));
-            child.on('close', status => status === 0
-                ? resolve()
-                : reject(new Error(`Process exited with status code ${status}`)));
-        });
-    });
-}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -100,11 +59,13 @@ function run() {
                 core.warning(`Skipping this Action because it only works on Windows, not on ${process_1.default.platform}`);
                 return;
             }
-            const architectureToDownload = architecture === 'aarch64' ? 'x86_64' : architecture;
+            if (architecture === 'aarch64' && flavor !== 'full') {
+                throw new Error('On aarch64, only the "full" flavor is supported at this time.');
+            }
             const githubToken = core.getInput('github-token');
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';
-            const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architectureToDownload, githubToken);
+            const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architecture, githubToken);
             const outputDirectory = core.getInput('path') || `C:/${artifactName}`;
             let useCache;
             switch (core.getInput('cache')) {
@@ -156,11 +117,6 @@ function run() {
                 '/usr/bin',
                 `/${mingw.toLocaleLowerCase()}/bin`
             ];
-            if (architecture === 'aarch64') {
-                // Some binaries aren't available yet in the /clangarm64/bin folder, but Windows 11 ARM64
-                // has support for x64 emulation, so let's add /mingw64/bin as a fallback.
-                binPaths.splice(binPaths.length - 1, 0, '/mingw64/bin');
-            }
             for (const binPath of msysMode ? binPaths.reverse() : binPaths) {
                 core.addPath(`${outputDirectory}${binPath}`);
             }
@@ -191,12 +147,6 @@ function run() {
                 stderr: 'fd/2'
             })) {
                 ln(`/dev/${linkPath}`, `/proc/self/${target}`);
-            }
-            if (msystem === 'CLANGARM64') {
-                // ARM64 dependencies aren't included yet in the Git for Windows SDK. Ask Pacman to install them.
-                core.startGroup(`Installing CLANGARM64 dependencies`);
-                yield installArm64Dependencies(outputDirectory);
-                core.endGroup();
             }
         }
         catch (error) {
@@ -350,7 +300,14 @@ const gitExePath = `${gitRoot}/cmd/git.exe`;
 const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`;
 function getArtifactMetadata(flavor, architecture) {
     const bitness = architecture === 'i686' ? '32' : '64';
-    const repo = `git-sdk-${bitness}`;
+    const repo = {
+        i686: 'git-sdk-32',
+        x86_64: 'git-sdk-64',
+        aarch64: 'git-sdk-arm64'
+    }[architecture];
+    if (repo === undefined) {
+        throw new Error(`Invalid architecture ${architecture} specified`);
+    }
     const artifactName = `${repo}-${flavor}`;
     return { bitness, repo, artifactName };
 }

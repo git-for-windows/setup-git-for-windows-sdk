@@ -11,7 +11,7 @@ inputs:
     default: 'minimal'
   architecture:
     required: false
-    description: 'The architecture of the SDK: x86_64, i686 or aarch64. Note that "aarch64" uses the x86_64 SDK, but adds "clangarm64" to the path.'
+    description: 'The architecture of the SDK: x86_64, i686 or aarch64. Note that "aarch64" only supports the "full" flavor for now.'
     default: 'x86_64'
   msys:
     required: false

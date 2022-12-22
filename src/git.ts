@@ -30,7 +30,16 @@ export function getArtifactMetadata(
   architecture: string
 ): {bitness: string; repo: string; artifactName: string} {
   const bitness = architecture === 'i686' ? '32' : '64'
-  const repo = `git-sdk-${bitness}`
+  const repo = {
+    i686: 'git-sdk-32',
+    x86_64: 'git-sdk-64',
+    aarch64: 'git-sdk-arm64'
+  }[architecture]
+
+  if (repo === undefined) {
+    throw new Error(`Invalid architecture ${architecture} specified`)
+  }
+
   const artifactName = `${repo}-${flavor}`
 
   return {bitness, repo, artifactName}
