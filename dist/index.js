@@ -52,6 +52,22 @@ const git_1 = __nccwpck_require__(4647);
 const fs = __importStar(__nccwpck_require__(7147));
 const flavor = core.getInput('flavor');
 const architecture = core.getInput('architecture');
+/**
+ * Some Azure VM types have a temporary disk which is local to the VM and therefore provides
+ * _much_ faster disk IO than the OS Disk (or any other attached disk).
+ *
+ * Hosted GitHub Actions runners also leverage this disk and do their work in D:/a/_work, so let's
+ * use it too if we can. It leads to a ~25% speed increase when doing heavy IO operations.
+ *
+ * https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview#temporary-disk
+ */
+function getDriveLetterPrefix() {
+    if (fs.existsSync('D:/')) {
+        core.info('Found a fast, temporary disk on this VM (D:/). Will use that.');
+        return 'D:/';
+    }
+    return 'C:/';
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -66,7 +82,7 @@ function run() {
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';
             const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architecture, githubToken);
-            const outputDirectory = core.getInput('path') || `C:/${artifactName}`;
+            const outputDirectory = core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`;
             let useCache;
             switch (core.getInput('cache')) {
                 case 'true':
@@ -160,7 +176,7 @@ function cleanup() {
         return;
     }
     const outputDirectory = core.getInput('path') ||
-        `C:/${(0, git_1.getArtifactMetadata)(flavor, architecture).artifactName}`;
+        `${getDriveLetterPrefix()}${(0, git_1.getArtifactMetadata)(flavor, architecture).artifactName}`;
     /**
      * Shelling out to `rm -rf` is more than twice as fast as Node's `fs.rmSync` method.
      * Let's use it if it's available, and otherwise fall back to `fs.rmSync`.
