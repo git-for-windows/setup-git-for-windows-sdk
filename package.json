@@ -31,7 +31,7 @@
     "@actions/core": "^1.10.0",
     "@adobe/node-fetch-retry": "^2.2.0",
     "@octokit/rest": "^19.0.5",
-    "node-fetch": "^2.6.7",
+    "node-fetch": "^2.6.8",
     "unzipper": "^0.10.11"
   },
   "devDependencies": {
