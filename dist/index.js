@@ -315,7 +315,6 @@ const gitExePath = `${gitRoot}/cmd/git.exe`;
  */
 const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`;
 function getArtifactMetadata(flavor, architecture) {
-    const bitness = architecture === 'i686' ? '32' : '64';
     const repo = {
         i686: 'git-sdk-32',
         x86_64: 'git-sdk-64',
@@ -325,7 +324,7 @@ function getArtifactMetadata(flavor, architecture) {
         throw new Error(`Invalid architecture ${architecture} specified`);
     }
     const artifactName = `${repo}-${flavor}`;
-    return { bitness, repo, artifactName };
+    return { repo, artifactName };
 }
 exports.getArtifactMetadata = getArtifactMetadata;
 function clone(url, destination, verbose, cloneExtraOptions = []) {
@@ -361,7 +360,7 @@ function clone(url, destination, verbose, cloneExtraOptions = []) {
 function getViaGit(flavor, architecture, githubToken) {
     return __awaiter(this, void 0, void 0, function* () {
         const owner = 'git-for-windows';
-        const { bitness, repo, artifactName } = getArtifactMetadata(flavor, architecture);
+        const { repo, artifactName } = getArtifactMetadata(flavor, architecture);
         const octokit = githubToken ? new rest_1.Octokit({ auth: githubToken }) : new rest_1.Octokit();
         let head_sha;
         if (flavor === 'minimal') {
@@ -415,7 +414,7 @@ function getViaGit(flavor, architecture, githubToken) {
                         ...traceArg,
                         '.tmp/build-extra/please.sh',
                         'create-sdk-artifact',
-                        `--bitness=${bitness}`,
+                        `--architecture=${architecture}`,
                         `--out=${outputDirectory}`,
                         '--sdk=.tmp',
                         flavor
