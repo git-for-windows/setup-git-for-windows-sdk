@@ -60,7 +60,7 @@ Git for Windows SDK comes in variants targeting `x86_64` (AKA "64-bit"), `i686` 
     architecture: i686
 ```
 
-Please note that only the `build-installers` and the `full` flavors are available for `i686`. For `aarch64`, only the `full` flavor is available.
+Please note that only the `build-installers` and the `full` flavors are available for `i686`.
 
 ### Verbosity
 

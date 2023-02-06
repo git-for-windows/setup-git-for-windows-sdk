@@ -75,9 +75,6 @@ function run() {
                 core.warning(`Skipping this Action because it only works on Windows, not on ${process_1.default.platform}`);
                 return;
             }
-            if (architecture === 'aarch64' && flavor !== 'full') {
-                throw new Error('On aarch64, only the "full" flavor is supported at this time.');
-            }
             const githubToken = core.getInput('github-token');
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';

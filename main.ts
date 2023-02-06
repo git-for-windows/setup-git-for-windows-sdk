@@ -40,12 +40,6 @@ async function run(): Promise<void> {
       return
     }
 
-    if (architecture === 'aarch64' && flavor !== 'full') {
-      throw new Error(
-        'On aarch64, only the "full" flavor is supported at this time.'
-      )
-    }
-
     const githubToken = core.getInput('github-token')
     const verbose = core.getInput('verbose')
     const msysMode = core.getInput('msys') === 'true'
