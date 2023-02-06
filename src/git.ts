@@ -28,8 +28,7 @@ const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`
 export function getArtifactMetadata(
   flavor: string,
   architecture: string
-): {bitness: string; repo: string; artifactName: string} {
-  const bitness = architecture === 'i686' ? '32' : '64'
+): {repo: string; artifactName: string} {
   const repo = {
     i686: 'git-sdk-32',
     x86_64: 'git-sdk-64',
@@ -42,7 +41,7 @@ export function getArtifactMetadata(
 
   const artifactName = `${repo}-${flavor}`
 
-  return {bitness, repo, artifactName}
+  return {repo, artifactName}
 }
 
 async function clone(
@@ -95,10 +94,7 @@ export async function getViaGit(
 }> {
   const owner = 'git-for-windows'
 
-  const {bitness, repo, artifactName} = getArtifactMetadata(
-    flavor,
-    architecture
-  )
+  const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
 
   const octokit = githubToken ? new Octokit({auth: githubToken}) : new Octokit()
   let head_sha: string
@@ -167,7 +163,7 @@ export async function getViaGit(
             ...traceArg,
             '.tmp/build-extra/please.sh',
             'create-sdk-artifact',
-            `--bitness=${bitness}`,
+            `--architecture=${architecture}`,
             `--out=${outputDirectory}`,
             '--sdk=.tmp',
             flavor
