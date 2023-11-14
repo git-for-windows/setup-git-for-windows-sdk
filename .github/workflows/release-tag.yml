@@ -24,7 +24,7 @@ jobs:
           script: |
             const { execSync } = require('child_process')
 
-            for (const { key_id, raw_key } of (await github.users.listGpgKeysForUser({
+            for (const { key_id, raw_key } of (await github.rest.users.listGpgKeysForUser({
                 username: 'dscho'
             })).data) {
               execSync(`gpg ${raw_key ? '--import' : `--recv-keys ${key_id}`}`,
@@ -73,7 +73,7 @@ jobs:
             const { readFileSync } = require('fs')
 
             const tag_name = readFileSync('tag_name').toString()
-            await github.repos.createRelease({
+            await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag_name,
