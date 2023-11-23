@@ -28,7 +28,7 @@ do
     echo 'warning: HEAD is not up to date with `origin/main`' >&2
 
     regex="^  \"version\": \"$(echo "${tag#v}" | sed 's/\./\\./g')\",\$"
-    substitute="s/^\\(  \"version\": \"\\).*\",\$/\\1${tag#v}\",/"
+    substitute="/\"name\": \"setup-git-for-windows-sdk\"/{N;s/\\(\"version\": \"\\).*\",\$/\\1${tag#v}\",/}"
     git grep -q "$regex" refs/tags/$tag -- package.json || {
         sed "$substitute" <package.json >package.json.new &&
         mv -f package.json.new package.json
