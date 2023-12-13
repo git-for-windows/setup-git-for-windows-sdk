@@ -51,6 +51,8 @@ async function run(): Promise<void> {
     )
     const outputDirectory =
       core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`
+    core.setOutput('result', outputDirectory)
+
     let useCache: boolean
     switch (core.getInput('cache')) {
       case 'true':
