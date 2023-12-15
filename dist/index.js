@@ -80,6 +80,7 @@ function run() {
             const msysMode = core.getInput('msys') === 'true';
             const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architecture, githubToken);
             const outputDirectory = core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`;
+            core.setOutput('result', outputDirectory);
             let useCache;
             switch (core.getInput('cache')) {
                 case 'true':
