@@ -12,7 +12,7 @@ jobs:
   build: # make sure build/ci work properly
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: npm ci
       - run: npm run build
       - run: npm run lint
@@ -36,7 +36,7 @@ jobs:
   test: # make sure the action works on a clean machine without building
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run this Action in-place
         uses: ./
       - name: Verify that the Bash of Git for Windows' SDK is used
