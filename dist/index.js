@@ -325,8 +325,8 @@ function getArtifactMetadata(flavor, architecture) {
     return { repo, artifactName };
 }
 exports.getArtifactMetadata = getArtifactMetadata;
-function clone(url, destination, verbose, cloneExtraOptions = []) {
-    return __awaiter(this, void 0, void 0, function* () {
+function clone(url_1, destination_1, verbose_1) {
+    return __awaiter(this, arguments, void 0, function* (url, destination, verbose, cloneExtraOptions = []) {
         if (verbose)
             core.info(`Cloning ${url} to ${destination}`);
         const child = (0, child_process_1.spawn)(gitExePath, [
@@ -384,7 +384,7 @@ function getViaGit(flavor, architecture, githubToken) {
         return {
             artifactName,
             id,
-            download: (outputDirectory, verbose = false) => __awaiter(this, void 0, void 0, function* () {
+            download: (outputDirectory_1, ...args_1) => __awaiter(this, [outputDirectory_1, ...args_1], void 0, function* (outputDirectory, verbose = false) {
                 core.startGroup(`Cloning ${repo}`);
                 const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none'];
                 yield clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
