@@ -74,7 +74,7 @@ async function clone(
       if (code === 0) {
         resolve()
       } else {
-        reject(new Error(`tar: exited with code ${code}`))
+        reject(new Error(`git clone: exited with code ${code}`))
       }
     })
   })
