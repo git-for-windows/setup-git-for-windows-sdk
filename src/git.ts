@@ -80,6 +80,31 @@ async function clone(
   })
 }
 
+async function updateHEAD(
+  bareRepositoryPath: string,
+  headSHA: string
+): Promise<void> {
+  const child = spawn(
+    gitExePath,
+    ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA],
+    {
+      env: {
+        GIT_CONFIG_PARAMETERS
+      },
+      stdio: [undefined, 'inherit', 'inherit']
+    }
+  )
+  return new Promise<void>((resolve, reject) => {
+    child.on('close', code => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`git: exited with code ${code}`))
+      }
+    })
+  })
+}
+
 export async function getViaGit(
   flavor: string,
   architecture: string,
@@ -158,6 +183,7 @@ export async function getViaGit(
           }
         )
       } else {
+        await updateHEAD('.tmp', head_sha)
         core.startGroup('Cloning build-extra')
         await clone(
           `https://github.com/${owner}/build-extra`,
