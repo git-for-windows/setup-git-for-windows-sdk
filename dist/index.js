@@ -349,7 +349,27 @@ function clone(url_1, destination_1, verbose_1) {
                     resolve();
                 }
                 else {
-                    reject(new Error(`tar: exited with code ${code}`));
+                    reject(new Error(`git clone: exited with code ${code}`));
+                }
+            });
+        });
+    });
+}
+function updateHEAD(bareRepositoryPath, headSHA) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const child = (0, child_process_1.spawn)(gitExePath, ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA], {
+            env: {
+                GIT_CONFIG_PARAMETERS
+            },
+            stdio: [undefined, 'inherit', 'inherit']
+        });
+        return new Promise((resolve, reject) => {
+            child.on('close', code => {
+                if (code === 0) {
+                    resolve();
+                }
+                else {
+                    reject(new Error(`git: exited with code ${code}`));
                 }
             });
         });
@@ -390,7 +410,7 @@ function getViaGit(flavor, architecture, githubToken) {
             });
             head_sha = info.data.commit.sha;
         }
-        const id = `${artifactName}-${head_sha}`;
+        const id = `${artifactName}-${head_sha}${head_sha === 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71' ? '-2' : ''}`;
         core.info(`Got commit ${head_sha} for ${repo}`);
         return {
             artifactName,
@@ -414,6 +434,7 @@ function getViaGit(flavor, architecture, githubToken) {
                     });
                 }
                 else {
+                    yield updateHEAD('.tmp', head_sha);
                     core.startGroup('Cloning build-extra');
                     yield clone(`https://github.com/${owner}/build-extra`, '.tmp/build-extra', verbose);
                     core.endGroup();

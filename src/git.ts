@@ -74,7 +74,32 @@ async function clone(
       if (code === 0) {
         resolve()
       } else {
-        reject(new Error(`tar: exited with code ${code}`))
+        reject(new Error(`git clone: exited with code ${code}`))
+      }
+    })
+  })
+}
+
+async function updateHEAD(
+  bareRepositoryPath: string,
+  headSHA: string
+): Promise<void> {
+  const child = spawn(
+    gitExePath,
+    ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA],
+    {
+      env: {
+        GIT_CONFIG_PARAMETERS
+      },
+      stdio: [undefined, 'inherit', 'inherit']
+    }
+  )
+  return new Promise<void>((resolve, reject) => {
+    child.on('close', code => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`git: exited with code ${code}`))
       }
     })
   })
@@ -126,7 +151,7 @@ export async function getViaGit(
     })
     head_sha = info.data.commit.sha
   }
-  const id = `${artifactName}-${head_sha}`
+  const id = `${artifactName}-${head_sha}${head_sha === 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71' ? '-2' : ''}`
   core.info(`Got commit ${head_sha} for ${repo}`)
 
   return {
@@ -158,6 +183,7 @@ export async function getViaGit(
           }
         )
       } else {
+        await updateHEAD('.tmp', head_sha)
         core.startGroup('Cloning build-extra')
         await clone(
           `https://github.com/${owner}/build-extra`,
