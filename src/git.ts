@@ -151,7 +151,7 @@ export async function getViaGit(
     })
     head_sha = info.data.commit.sha
   }
-  const id = `${artifactName}-${head_sha}`
+  const id = `${artifactName}-${head_sha}${head_sha === 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71' ? '-2' : ''}`
   core.info(`Got commit ${head_sha} for ${repo}`)
 
   return {
