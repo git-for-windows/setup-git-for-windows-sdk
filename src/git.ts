@@ -107,6 +107,17 @@ export async function getViaGit(
       per_page: 1
     })
     head_sha = info.data.workflow_runs[0].head_sha
+    /*
+     * There was a GCC upgrade to v14.1 that broke the build with `DEVELOPER=1`,
+     * and `ci-artifacts` was not updated to test-build with `DEVELOPER=1` (this
+     * was fixed in https://github.com/git-for-windows/git-sdk-64/pull/83).
+     *
+     * Work around that by forcing the incorrectly-passing revision back to the
+     * last one before that GCC upgrade.
+     */
+    if (head_sha === '5f6ba092f690c0bbf84c7201be97db59cdaeb891') {
+      head_sha = 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71'
+    }
   } else {
     const info = await octokit.repos.getBranch({
       owner,
