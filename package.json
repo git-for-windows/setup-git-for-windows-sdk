@@ -39,7 +39,7 @@
     "@types/node": "^20.14.5",
     "@types/unzipper": "^0.10.9",
     "@typescript-eslint/eslint-plugin": "^7.13.1",
-    "@typescript-eslint/parser": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.1",
     "@vercel/ncc": "^0.38.1",
     "eslint": "^8.57.0",
     "eslint-plugin-anti-trojan-source": "^1.1.1",
