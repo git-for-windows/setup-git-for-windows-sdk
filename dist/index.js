@@ -228,7 +228,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.mkdirp = void 0;
+exports.mkdirp = mkdirp;
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 function mkdirp(directoryPath) {
     try {
@@ -245,7 +245,6 @@ function mkdirp(directoryPath) {
     }
     fs_1.default.mkdirSync(directoryPath, { recursive: true });
 }
-exports.mkdirp = mkdirp;
 
 
 /***/ }),
@@ -288,7 +287,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getViaGit = exports.getArtifactMetadata = exports.gitForWindowsUsrBinPath = void 0;
+exports.gitForWindowsUsrBinPath = void 0;
+exports.getArtifactMetadata = getArtifactMetadata;
+exports.getViaGit = getViaGit;
 const core = __importStar(__nccwpck_require__(2186));
 const child_process_1 = __nccwpck_require__(2081);
 const rest_1 = __nccwpck_require__(5375);
@@ -324,7 +325,6 @@ function getArtifactMetadata(flavor, architecture) {
     const artifactName = `${repo}-${flavor}`;
     return { repo, artifactName };
 }
-exports.getArtifactMetadata = getArtifactMetadata;
 function clone(url_1, destination_1, verbose_1) {
     return __awaiter(this, arguments, void 0, function* (url, destination, verbose, cloneExtraOptions = []) {
         if (verbose)
@@ -476,7 +476,6 @@ function getViaGit(flavor, architecture, githubToken) {
         };
     });
 }
-exports.getViaGit = getViaGit;
 
 
 /***/ }),
