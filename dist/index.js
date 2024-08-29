@@ -387,6 +387,8 @@ function getViaGit(flavor, architecture, githubToken) {
                 repo,
                 workflow_id: 938271,
                 status: 'success',
+                branch: 'main',
+                event: 'push',
                 per_page: 1
             });
             head_sha = info.data.workflow_runs[0].head_sha;
