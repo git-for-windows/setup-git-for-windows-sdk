@@ -14,6 +14,7 @@
     },
     "plugins": [
        "@typescript-eslint",
+       "@stylistic",
        "anti-trojan-source",
        "jest"
     ],
@@ -24,7 +25,7 @@
       "@typescript-eslint/consistent-type-assertions": "error",
       "@typescript-eslint/explicit-function-return-type": ["error", {"allowExpressions": true}],
       "@typescript-eslint/explicit-member-accessibility": ["error", {"accessibility": "no-public"}],
-      "@typescript-eslint/func-call-spacing": ["error", "never"],
+      "@stylistic/func-call-spacing": ["error", "never"],
       "@typescript-eslint/no-array-constructor": "error",
       "@typescript-eslint/no-empty-interface": "error",
       "@typescript-eslint/no-explicit-any": "error",
@@ -47,8 +48,8 @@
       "@typescript-eslint/promise-function-async": "error",
       "@typescript-eslint/require-array-sort-compare": "error",
       "@typescript-eslint/restrict-plus-operands": "error",
-      "@typescript-eslint/semi": ["error", "never"],
-      "@typescript-eslint/type-annotation-spacing": "error",
+      "@stylistic/semi": ["error", "never"],
+      "@stylistic/type-annotation-spacing": "error",
       "@typescript-eslint/unbound-method": "error",
       "anti-trojan-source/no-bidi": "error",
       "camelcase": "off",
