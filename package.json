@@ -35,11 +35,12 @@
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
+    "@stylistic/eslint-plugin": "^2.7.2",
     "@types/jest": "^28.1.8",
     "@types/node": "^22.5.4",
     "@types/unzipper": "^0.10.10",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/eslint-plugin": "^8.4.0",
+    "@typescript-eslint/parser": "^8.4.0",
     "@vercel/ncc": "^0.38.1",
     "eslint": "^8.57.0",
     "eslint-plugin-anti-trojan-source": "^1.1.1",
