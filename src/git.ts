@@ -11,7 +11,11 @@ const gitRoot = fs.existsSync(externalsGitDir)
   ? externalsGitDir
   : gitForWindowsRoot
 
-export const gitForWindowsUsrBinPath = `${gitRoot}/usr/bin`
+const gitForWindowsBinPaths = ['clangarm64', 'mingw64', 'mingw32', 'usr'].map(
+  p => `${gitRoot}/${p}/bin`
+)
+export const gitForWindowsUsrBinPath =
+  gitForWindowsBinPaths[gitForWindowsBinPaths.length - 1]
 const gitExePath = `${gitRoot}/cmd/git.exe`
 
 /*
@@ -216,7 +220,7 @@ export async function getViaGit(
               LC_CTYPE: 'C.UTF-8',
               CHERE_INVOKING: '1',
               MSYSTEM: 'MINGW64',
-              PATH: `${gitForWindowsUsrBinPath}${delimiter}${process.env.PATH}`
+              PATH: `${gitForWindowsBinPaths.join(delimiter)}${delimiter}${process.env.PATH}`
             },
             stdio: [undefined, 'inherit', 'inherit']
           }
