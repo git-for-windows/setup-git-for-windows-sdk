@@ -59,7 +59,7 @@ async function run(): Promise<void> {
         useCache = true
         break
       case 'auto':
-        useCache = flavor !== 'full'
+        useCache = !['full', 'minimal'].includes(flavor)
         break
       default:
         useCache = false
