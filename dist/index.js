@@ -59,6 +59,7 @@ const cache_1 = __nccwpck_require__(5116);
 const process_1 = __importDefault(__nccwpck_require__(932));
 const child_process_1 = __nccwpck_require__(5317);
 const git_1 = __nccwpck_require__(1417);
+const ci_artifacts_1 = __nccwpck_require__(657);
 const fs = __importStar(__nccwpck_require__(9896));
 const flavor = core.getInput('flavor');
 const architecture = core.getInput('architecture');
@@ -88,7 +89,9 @@ function run() {
             const githubToken = core.getInput('github-token');
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';
-            const { artifactName, download, id } = yield (0, git_1.getViaGit)(flavor, architecture, githubToken);
+            const { artifactName, download, id } = flavor === 'minimal'
+                ? yield (0, ci_artifacts_1.getViaCIArtifacts)(architecture, githubToken)
+                : yield (0, git_1.getViaGit)(flavor, architecture, githubToken);
             const outputDirectory = core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`;
             core.setOutput('result', outputDirectory);
             let useCache;
@@ -97,7 +100,7 @@ function run() {
                     useCache = true;
                     break;
                 case 'auto':
-                    useCache = flavor !== 'full';
+                    useCache = !['full', 'minimal'].includes(flavor);
                     break;
                 default:
                     useCache = false;
@@ -224,6 +227,133 @@ if (!exports.isPost) {
 else {
     // If the POST action is running, we cleanup our artifacts
     cleanup();
+}
+
+
+/***/ }),
+
+/***/ 657:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getViaCIArtifacts = getViaCIArtifacts;
+const core = __importStar(__nccwpck_require__(7484));
+const rest_1 = __nccwpck_require__(5772);
+const git_1 = __nccwpck_require__(1417);
+const child_process_1 = __nccwpck_require__(5317);
+const fs = __importStar(__nccwpck_require__(9896));
+function sleep(milliseconds) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, _reject) => {
+            setTimeout(resolve, milliseconds);
+        });
+    });
+}
+function getViaCIArtifacts(architecture, githubToken) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const owner = 'git-for-windows';
+        const { repo, artifactName } = (0, git_1.getArtifactMetadata)('minimal', architecture);
+        const octokit = githubToken ? new rest_1.Octokit({ auth: githubToken }) : new rest_1.Octokit();
+        const { name, updated_at: updatedAt, browser_download_url: url } = yield (() => __awaiter(this, void 0, void 0, function* () {
+            let error;
+            for (const seconds of [0, 5, 10, 15, 20, 40]) {
+                if (seconds)
+                    yield sleep(seconds);
+                const ciArtifactsResponse = yield octokit.repos.getReleaseByTag({
+                    owner,
+                    repo,
+                    tag: 'ci-artifacts'
+                });
+                if (ciArtifactsResponse.status !== 200) {
+                    error = new Error(`Failed to get ci-artifacts release from the ${owner}/${repo} repo: ${ciArtifactsResponse.status}`);
+                    continue;
+                }
+                core.info(`Found ci-artifacts release: ${ciArtifactsResponse.data.html_url}`);
+                const tarGzArtifact = ciArtifactsResponse.data.assets.find(asset => asset.name.endsWith('.tar.gz'));
+                if (!tarGzArtifact) {
+                    error = new Error(`Failed to find a .tar.gz artifact in the ci-artifacts release of the ${owner}/${repo} repo`);
+                    continue;
+                }
+                return tarGzArtifact;
+            }
+            throw error;
+        }))();
+        core.info(`Found ${name} at ${url}`);
+        return {
+            artifactName,
+            id: `ci-artifacts-${updatedAt}`,
+            download: (outputDirectory_1, ...args_1) => __awaiter(this, [outputDirectory_1, ...args_1], void 0, function* (outputDirectory, verbose = false) {
+                return new Promise((resolve, reject) => {
+                    const curl = (0, child_process_1.spawn)(`${process.env.SYSTEMROOT}/system32/curl.exe`, [
+                        ...(githubToken
+                            ? ['-H', `Authorization: Bearer ${githubToken}`]
+                            : []),
+                        '-H',
+                        'Accept: application/octet-stream',
+                        `-${verbose === true ? '' : 's'}fL`,
+                        url
+                    ], {
+                        stdio: ['ignore', 'pipe', process.stderr]
+                    });
+                    curl.on('error', error => reject(error));
+                    fs.mkdirSync(outputDirectory, { recursive: true });
+                    const tar = (0, child_process_1.spawn)(`${process.env.SYSTEMROOT}/system32/tar.exe`, ['-C', outputDirectory, `-x${verbose === true ? 'v' : ''}f`, '-'], { stdio: ['pipe', process.stdout, process.stderr] });
+                    tar.on('error', error => reject(error));
+                    tar.on('close', code => {
+                        if (code === 0)
+                            resolve();
+                        else
+                            reject(new Error(`tar exited with code ${code}`));
+                    });
+                    curl.stdout.pipe(tar.stdin);
+                });
+            })
+        };
+    });
 }
 
 
