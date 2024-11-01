@@ -35,7 +35,7 @@
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^2.10.0",
+    "@stylistic/eslint-plugin": "^2.10.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.8.6",
     "@types/unzipper": "^0.10.10",
