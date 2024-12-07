@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint no-console: "off" */
 import * as child_process from 'child_process'
 import * as path from 'path'
 import * as process from 'process'
