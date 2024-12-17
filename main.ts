@@ -8,6 +8,7 @@ import {
   getViaGit,
   gitForWindowsUsrBinPath
 } from './src/git'
+import {getViaCIArtifacts} from './src/ci_artifacts'
 import * as fs from 'fs'
 
 const flavor = core.getInput('flavor')
@@ -44,11 +45,10 @@ async function run(): Promise<void> {
     const verbose = core.getInput('verbose')
     const msysMode = core.getInput('msys') === 'true'
 
-    const {artifactName, download, id} = await getViaGit(
-      flavor,
-      architecture,
-      githubToken
-    )
+    const {artifactName, download, id} =
+      flavor === 'minimal'
+        ? await getViaCIArtifacts(architecture, githubToken)
+        : await getViaGit(flavor, architecture, githubToken)
     const outputDirectory =
       core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`
     core.setOutput('result', outputDirectory)
@@ -59,7 +59,7 @@ async function run(): Promise<void> {
         useCache = true
         break
       case 'auto':
-        useCache = flavor !== 'full'
+        useCache = !['full', 'minimal'].includes(flavor)
         break
       default:
         useCache = false
