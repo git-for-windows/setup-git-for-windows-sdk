@@ -40,7 +40,7 @@
     "@stylistic/eslint-plugin": "^4.2.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.9",
-    "@types/unzipper": "^0.10.10",
+    "@types/unzipper": "^0.10.11",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.23.0",
     "@vercel/ncc": "^0.38.3",
