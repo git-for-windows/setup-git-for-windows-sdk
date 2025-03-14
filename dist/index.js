@@ -439,9 +439,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.gitForWindowsUsrBinPath = void 0;
 exports.getArtifactMetadata = getArtifactMetadata;
+exports.clone = clone;
 exports.getViaGit = getViaGit;
 const core = __importStar(__nccwpck_require__(7484));
-const child_process_1 = __nccwpck_require__(5317);
+const spawn_1 = __nccwpck_require__(3494);
 const rest_1 = __nccwpck_require__(5772);
 const path_1 = __nccwpck_require__(6928);
 const fs = __importStar(__nccwpck_require__(9896));
@@ -480,7 +481,7 @@ function clone(url_1, destination_1, verbose_1) {
     return __awaiter(this, arguments, void 0, function* (url, destination, verbose, cloneExtraOptions = []) {
         if (verbose)
             core.info(`Cloning ${url} to ${destination}`);
-        const child = (0, child_process_1.spawn)(gitExePath, [
+        const child = yield (0, spawn_1.spawnAndWaitForExitCode)(gitExePath, [
             'clone',
             '--depth=1',
             '--single-branch',
@@ -491,39 +492,23 @@ function clone(url_1, destination_1, verbose_1) {
         ], {
             env: {
                 GIT_CONFIG_PARAMETERS
-            },
-            stdio: [undefined, 'inherit', 'inherit']
+            }
         });
-        return new Promise((resolve, reject) => {
-            child.on('close', code => {
-                if (code === 0) {
-                    resolve();
-                }
-                else {
-                    reject(new Error(`git clone: exited with code ${code}`));
-                }
-            });
-        });
+        if (child.exitCode !== 0) {
+            throw new Error(`git clone: exited with code ${child.exitCode}`);
+        }
     });
 }
 function updateHEAD(bareRepositoryPath, headSHA) {
     return __awaiter(this, void 0, void 0, function* () {
-        const child = (0, child_process_1.spawn)(gitExePath, ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA], {
+        const child = yield (0, spawn_1.spawnAndWaitForExitCode)(gitExePath, ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA], {
             env: {
                 GIT_CONFIG_PARAMETERS
-            },
-            stdio: [undefined, 'inherit', 'inherit']
+            }
         });
-        return new Promise((resolve, reject) => {
-            child.on('close', code => {
-                if (code === 0) {
-                    resolve();
-                }
-                else {
-                    reject(new Error(`git: exited with code ${code}`));
-                }
-            });
-        });
+        if (child.exitCode !== 0) {
+            throw new Error(`git: exited with code ${child.exitCode}`);
+        }
     });
 }
 function getViaGit(flavor, architecture, githubToken) {
@@ -579,11 +564,10 @@ function getViaGit(flavor, architecture, githubToken) {
                 let child;
                 if (flavor === 'full') {
                     core.startGroup(`Checking out ${repo}`);
-                    child = (0, child_process_1.spawn)(gitExePath, [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha], {
+                    child = yield (0, spawn_1.spawnAndWaitForExitCode)(gitExePath, [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha], {
                         env: {
                             GIT_CONFIG_PARAMETERS
-                        },
-                        stdio: [undefined, 'inherit', 'inherit']
+                        }
                     });
                 }
                 else {
@@ -593,7 +577,7 @@ function getViaGit(flavor, architecture, githubToken) {
                     core.endGroup();
                     core.startGroup(`Creating ${flavor} artifact`);
                     const traceArg = verbose ? ['-x'] : [];
-                    child = (0, child_process_1.spawn)(`${exports.gitForWindowsUsrBinPath}/bash.exe`, [
+                    child = yield (0, spawn_1.spawnAndWaitForExitCode)(`${exports.gitForWindowsUsrBinPath}/bash.exe`, [
                         ...traceArg,
                         '.tmp/build-extra/please.sh',
                         'create-sdk-artifact',
@@ -610,23 +594,56 @@ function getViaGit(flavor, architecture, githubToken) {
                             CHERE_INVOKING: '1',
                             MSYSTEM: 'MINGW64',
                             PATH: `${gitForWindowsBinPaths.join(path_1.delimiter)}${path_1.delimiter}${process.env.PATH}`
-                        },
-                        stdio: [undefined, 'inherit', 'inherit']
+                        }
                     });
                 }
-                return new Promise((resolve, reject) => {
-                    child.on('close', code => {
-                        core.endGroup();
-                        if (code === 0) {
-                            fs.rm('.tmp', { recursive: true }, () => resolve());
-                        }
-                        else {
-                            reject(new Error(`process exited with code ${code}`));
-                        }
-                    });
-                });
+                core.endGroup();
+                if (child.exitCode === 0) {
+                    fs.rmSync('.tmp', { recursive: true });
+                }
+                else {
+                    throw new Error(`process exited with code ${child.exitCode}`);
+                }
             })
         };
+    });
+}
+
+
+/***/ }),
+
+/***/ 3494:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.spawnAndWaitForExitCode = spawnAndWaitForExitCode;
+const child_process_1 = __nccwpck_require__(5317);
+/**
+ * Simple wrapper around NodeJS's "child_process.spawn" function.
+ * Since we only use the exit code, we only expose that.
+ */
+function spawnAndWaitForExitCode(command, args, options) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const child = (0, child_process_1.spawn)(command, args, Object.assign(Object.assign({}, options), { 
+            // 'inherit' means that the child process will use the same stdio/stderr as the parent process
+            stdio: [undefined, 'inherit', 'inherit'] }));
+        return new Promise((resolve, reject) => {
+            child.on('error', reject);
+            child.on('close', code => {
+                resolve({ exitCode: code });
+            });
+        });
     });
 }
 
