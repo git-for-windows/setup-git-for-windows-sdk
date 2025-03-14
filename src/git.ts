@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {ChildProcess, spawn} from 'child_process'
+import {spawnAndWaitForExitCode, SpawnReturnArgs} from './spawn'
 import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
 import * as fs from 'fs'
@@ -48,14 +48,14 @@ export function getArtifactMetadata(
   return {repo, artifactName}
 }
 
-async function clone(
+export async function clone(
   url: string,
   destination: string,
   verbose: number | boolean,
   cloneExtraOptions: string[] = []
 ): Promise<void> {
   if (verbose) core.info(`Cloning ${url} to ${destination}`)
-  const child = spawn(
+  const child = await spawnAndWaitForExitCode(
     gitExePath,
     [
       'clone',
@@ -69,44 +69,30 @@ async function clone(
     {
       env: {
         GIT_CONFIG_PARAMETERS
-      },
-      stdio: [undefined, 'inherit', 'inherit']
+      }
     }
   )
-  return new Promise<void>((resolve, reject) => {
-    child.on('close', code => {
-      if (code === 0) {
-        resolve()
-      } else {
-        reject(new Error(`git clone: exited with code ${code}`))
-      }
-    })
-  })
+  if (child.exitCode !== 0) {
+    throw new Error(`git clone: exited with code ${child.exitCode}`)
+  }
 }
 
 async function updateHEAD(
   bareRepositoryPath: string,
   headSHA: string
 ): Promise<void> {
-  const child = spawn(
+  const child = await spawnAndWaitForExitCode(
     gitExePath,
     ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA],
     {
       env: {
         GIT_CONFIG_PARAMETERS
-      },
-      stdio: [undefined, 'inherit', 'inherit']
+      }
     }
   )
-  return new Promise<void>((resolve, reject) => {
-    child.on('close', code => {
-      if (code === 0) {
-        resolve()
-      } else {
-        reject(new Error(`git: exited with code ${code}`))
-      }
-    })
-  })
+  if (child.exitCode !== 0) {
+    throw new Error(`git: exited with code ${child.exitCode}`)
+  }
 }
 
 export async function getViaGit(
@@ -175,17 +161,16 @@ export async function getViaGit(
       ])
       core.endGroup()
 
-      let child: ChildProcess
+      let child: SpawnReturnArgs
       if (flavor === 'full') {
         core.startGroup(`Checking out ${repo}`)
-        child = spawn(
+        child = await spawnAndWaitForExitCode(
           gitExePath,
           [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha],
           {
             env: {
               GIT_CONFIG_PARAMETERS
-            },
-            stdio: [undefined, 'inherit', 'inherit']
+            }
           }
         )
       } else {
@@ -200,7 +185,7 @@ export async function getViaGit(
 
         core.startGroup(`Creating ${flavor} artifact`)
         const traceArg = verbose ? ['-x'] : []
-        child = spawn(
+        child = await spawnAndWaitForExitCode(
           `${gitForWindowsUsrBinPath}/bash.exe`,
           [
             ...traceArg,
@@ -221,21 +206,16 @@ export async function getViaGit(
               CHERE_INVOKING: '1',
               MSYSTEM: 'MINGW64',
               PATH: `${gitForWindowsBinPaths.join(delimiter)}${delimiter}${process.env.PATH}`
-            },
-            stdio: [undefined, 'inherit', 'inherit']
+            }
           }
         )
       }
-      return new Promise<void>((resolve, reject) => {
-        child.on('close', code => {
-          core.endGroup()
-          if (code === 0) {
-            fs.rm('.tmp', {recursive: true}, () => resolve())
-          } else {
-            reject(new Error(`process exited with code ${code}`))
-          }
-        })
-      })
+      core.endGroup()
+      if (child.exitCode === 0) {
+        fs.rmSync('.tmp', {recursive: true})
+      } else {
+        throw new Error(`process exited with code ${child.exitCode}`)
+      }
     }
   }
 }
