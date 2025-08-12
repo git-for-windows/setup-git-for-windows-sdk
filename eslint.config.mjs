@@ -15,7 +15,6 @@ export default tseslint.config([
     {
         ignores: ["**/dist/", "**/lib/", "**/node_modules/", "**/jest.config.js"],
         plugins: {
-            "@typescript-eslint": typescriptEslint,
             "@stylistic": stylistic,
             "anti-trojan-source": antiTrojanSource,
             jest,
