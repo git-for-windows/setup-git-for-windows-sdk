@@ -74,7 +74,7 @@ export default tseslint.config([
             "eslint-comments/no-use": "off",
             "github/filenames-match-regex": ["error", "^[a-z_]+(\\.test|\\.d)?$"],
             "i18n-text/no-en": "off",
-            "importPlugin/no-namespace": "off",
+            "import/no-namespace": "off",
             "no-unused-vars": "off",
             semi: "off",
         },
