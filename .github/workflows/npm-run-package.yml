@@ -17,7 +17,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.repository.owner.login == 'git-for-windows'
     environment: git-for-windows-ci-push
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ${{ github.event.repository.full_name }}
           ref: ${{ inputs.branch }}${{ github.event.ref }}
