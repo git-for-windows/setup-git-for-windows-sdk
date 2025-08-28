@@ -1,4 +1,5 @@
-import * as core from '@actions/core'
+import {ICore} from './src/core'
+import {ActionsCore} from './src/actions_core'
 import {mkdirp} from './src/downloader'
 import {restoreCache, saveCache} from '@actions/cache'
 import process from 'process'
@@ -11,9 +12,6 @@ import {
 import {getViaCIArtifacts} from './src/ci_artifacts'
 import * as fs from 'fs'
 
-const flavor = core.getInput('flavor')
-const architecture = core.getInput('architecture')
-
 /**
  * Some Azure VM types have a temporary disk which is local to the VM and therefore provides
  * _much_ faster disk IO than the OS Disk (or any other attached disk).
@@ -23,7 +21,7 @@ const architecture = core.getInput('architecture')
  *
  * https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview#temporary-disk
  */
-function getDriveLetterPrefix(): string {
+function getDriveLetterPrefix(core: ICore): string {
   if (fs.existsSync('D:/')) {
     core.info('Found a fast, temporary disk on this VM (D:/). Will use that.')
     return 'D:/'
@@ -32,7 +30,11 @@ function getDriveLetterPrefix(): string {
   return 'C:/'
 }
 
-async function run(): Promise<void> {
+async function setup(
+  core: ICore,
+  flavor: string,
+  architecture: string
+): Promise<void> {
   try {
     if (process.platform !== 'win32') {
       core.warning(
@@ -47,10 +49,10 @@ async function run(): Promise<void> {
 
     const {artifactName, download, id} =
       flavor === 'minimal'
-        ? await getViaCIArtifacts(architecture, githubToken)
-        : await getViaGit(flavor, architecture, githubToken)
+        ? await getViaCIArtifacts(core, architecture, githubToken)
+        : await getViaGit(core, flavor, architecture, githubToken)
     const outputDirectory =
-      core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`
+      core.getInput('path') || `${getDriveLetterPrefix(core)}${artifactName}`
     core.setOutput('result', outputDirectory)
 
     let useCache: boolean
@@ -158,7 +160,7 @@ async function run(): Promise<void> {
   }
 }
 
-function cleanup(): void {
+function cleanup(core: ICore, flavor: string, architecture: string): void {
   if (core.getInput('cleanup') !== 'true') {
     core.info(
       `Won't clean up SDK files as the 'cleanup' input was not provided or doesn't equal 'true'.`
@@ -168,7 +170,7 @@ function cleanup(): void {
 
   const outputDirectory =
     core.getInput('path') ||
-    `${getDriveLetterPrefix()}${
+    `${getDriveLetterPrefix(core)}${
       getArtifactMetadata(flavor, architecture).artifactName
     }`
 
@@ -203,20 +205,22 @@ function cleanup(): void {
   core.info(`Finished cleaning up ${outputDirectory}.`)
 }
 
-/**
- * Indicates whether the POST action is running
- */
-export const isPost = !!core.getState('isPost')
-
-if (!isPost) {
-  run()
-  /*
-   * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
-   * This is necessary since we don't have a separate entry point.
-   * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
-   */
-  core.saveState('isPost', 'true')
-} else {
-  // If the POST action is running, we cleanup our artifacts
-  cleanup()
+async function run(core: ICore): Promise<void> {
+  const flavor = core.getInput('flavor')
+  const architecture = core.getInput('architecture')
+  const isPost = !!core.getState('isPost')
+  if (!isPost) {
+    setup(core, flavor, architecture)
+    /*
+     * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
+     * This is necessary since we don't have a separate entry point.
+     * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
+     */
+    core.saveState('isPost', 'true')
+  } else {
+    // If the POST action is running, we cleanup our artifacts
+    cleanup(core, flavor, architecture)
+  }
 }
+
+run(new ActionsCore())

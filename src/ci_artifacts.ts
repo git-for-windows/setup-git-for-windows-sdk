@@ -1,4 +1,4 @@
-import * as core from '@actions/core'
+import {ICore} from './core'
 import {Octokit} from '@octokit/rest'
 import {getArtifactMetadata} from './git'
 import {spawn} from 'child_process'
@@ -11,6 +11,7 @@ async function sleep(milliseconds: number): Promise<void> {
 }
 
 export async function getViaCIArtifacts(
+  core: ICore,
   architecture: string,
   githubToken?: string
 ): Promise<{

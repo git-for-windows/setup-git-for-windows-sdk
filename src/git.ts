@@ -1,4 +1,4 @@
-import * as core from '@actions/core'
+import {ICore} from './core'
 import {spawnAndWaitForExitCode, SpawnReturnArgs} from './spawn'
 import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
@@ -49,6 +49,7 @@ export function getArtifactMetadata(
 }
 
 export async function clone(
+  core: ICore,
   url: string,
   destination: string,
   verbose: number | boolean,
@@ -96,6 +97,7 @@ async function updateHEAD(
 }
 
 export async function getViaGit(
+  core: ICore,
   flavor: string,
   architecture: string,
   githubToken?: string
@@ -155,10 +157,13 @@ export async function getViaGit(
     ): Promise<void> => {
       core.startGroup(`Cloning ${repo}`)
       const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none']
-      await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
-        '--bare',
-        ...partialCloneArg
-      ])
+      await clone(
+        core,
+        `https://github.com/${owner}/${repo}`,
+        `.tmp`,
+        verbose,
+        ['--bare', ...partialCloneArg]
+      )
       core.endGroup()
 
       let child: SpawnReturnArgs
@@ -177,6 +182,7 @@ export async function getViaGit(
         await updateHEAD('.tmp', head_sha)
         core.startGroup('Cloning build-extra')
         await clone(
+          core,
           `https://github.com/${owner}/build-extra`,
           '.tmp/build-extra',
           verbose
