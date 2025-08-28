@@ -54,7 +54,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const actions_core_1 = __nccwpck_require__(7994);
 const downloader_1 = __nccwpck_require__(6426);
-const cache_1 = __nccwpck_require__(5116);
 const process_1 = __importDefault(__nccwpck_require__(932));
 const child_process_1 = __nccwpck_require__(5317);
 const git_1 = __nccwpck_require__(1417);
@@ -102,9 +101,12 @@ function setup(core, flavor, architecture) {
                 default:
                     useCache = false;
             }
+            if (!core.isCacheAvailable()) {
+                useCache = false;
+            }
             let needToDownload = true;
             try {
-                if (useCache && (yield (0, cache_1.restoreCache)([outputDirectory], id))) {
+                if (useCache && (yield core.restoreCache([outputDirectory], id))) {
                     core.info(`Cached ${id} was successfully restored`);
                     needToDownload = false;
                 }
@@ -117,7 +119,7 @@ function setup(core, flavor, architecture) {
                 core.info(`Downloading ${artifactName}`);
                 yield download(outputDirectory, verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true');
                 try {
-                    if (useCache && !(yield (0, cache_1.saveCache)([outputDirectory], id))) {
+                    if (useCache && !(yield core.saveCache([outputDirectory], id))) {
                         core.warning(`Failed to cache ${id}`);
                     }
                 }
@@ -271,10 +273,33 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ActionsCore = void 0;
 const core = __importStar(__nccwpck_require__(7484));
+const cache = __importStar(__nccwpck_require__(5116));
 class ActionsCore {
+    isCacheAvailable() {
+        return cache.isFeatureAvailable();
+    }
+    restoreCache(paths, primaryKey) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return cache.restoreCache(paths, primaryKey);
+        });
+    }
+    saveCache(paths, key) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return cache.saveCache(paths, key);
+        });
+    }
     getInput(name) {
         return core.getInput(name);
     }

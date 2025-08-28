@@ -1,7 +1,6 @@
 import {ICore} from './src/core'
 import {ActionsCore} from './src/actions_core'
 import {mkdirp} from './src/downloader'
-import {restoreCache, saveCache} from '@actions/cache'
 import process from 'process'
 import {spawnSync} from 'child_process'
 import {
@@ -67,9 +66,13 @@ async function setup(
         useCache = false
     }
 
+    if (!core.isCacheAvailable()) {
+      useCache = false
+    }
+
     let needToDownload = true
     try {
-      if (useCache && (await restoreCache([outputDirectory], id))) {
+      if (useCache && (await core.restoreCache([outputDirectory], id))) {
         core.info(`Cached ${id} was successfully restored`)
         needToDownload = false
       }
@@ -86,7 +89,7 @@ async function setup(
       )
 
       try {
-        if (useCache && !(await saveCache([outputDirectory], id))) {
+        if (useCache && !(await core.saveCache([outputDirectory], id))) {
           core.warning(`Failed to cache ${id}`)
         }
       } catch (e) {

@@ -1,7 +1,23 @@
 import {ICore} from '../src/core'
 import * as core from '@actions/core'
+import * as cache from '@actions/cache'
 
 export class ActionsCore implements ICore {
+  isCacheAvailable(): boolean {
+    return cache.isFeatureAvailable()
+  }
+
+  async restoreCache(
+    paths: string[],
+    primaryKey: string
+  ): Promise<string | undefined> {
+    return cache.restoreCache(paths, primaryKey)
+  }
+
+  async saveCache(paths: string[], key: string): Promise<number> {
+    return cache.saveCache(paths, key)
+  }
+
   getInput(name: string): string {
     return core.getInput(name)
   }

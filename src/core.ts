@@ -4,6 +4,29 @@
  */
 export interface ICore {
   /**
+   * Checks if caching is available.
+   */
+  isCacheAvailable(): boolean
+
+  /**
+   * Restores cache from keys
+   *
+   * @param paths a list of file paths to restore from the cache
+   * @param primaryKey an explicit key for restoring the cache. Lookup is done with prefix matching.
+   * @returns string returns the key for the cache hit, otherwise returns undefined
+   */
+  restoreCache(paths: string[], primaryKey: string): Promise<string | undefined>
+
+  /**
+   * Saves a list of files with the specified key
+   *
+   * @param paths a list of file paths to be cached
+   * @param key an explicit key for restoring the cache
+   * @returns number returns cacheId if the cache was saved successfully and throws an error if save fails
+   */
+  saveCache(paths: string[], key: string): Promise<number>
+
+  /**
    * Gets an input from the action/task configuration.
    * @param name The name of the input
    * @returns The input value or empty string if not found
