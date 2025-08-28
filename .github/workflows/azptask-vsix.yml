@@ -1,0 +1,32 @@
+name: 'Build Azure DevOps Extension'
+on:
+  pull_request:
+  push:
+    tags:
+      - 'v[0-9]*'
+    branches:
+      - main
+      - 'v[0-9]*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: npm ci
+        working-directory: azure-pipelines-task
+      - run: npm run build
+        working-directory: azure-pipelines-task
+      - run: npm run lint
+        working-directory: azure-pipelines-task
+      - run: npm run format && git diff-files
+        working-directory: azure-pipelines-task
+      - run: npm run test
+        working-directory: azure-pipelines-task
+      - run: npm run package
+        working-directory: azure-pipelines-task
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: ./azure-pipelines-task/vsix/*.vsix

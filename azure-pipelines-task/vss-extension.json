@@ -1,0 +1,46 @@
+{
+  "manifestVersion": 1,
+  "id": "git-for-windows-sdk-tasks",
+  "name": "Git for Windows SDK Tasks",
+  "version": "1.0.0",
+  "publisher": "git-for-windows",
+  "description": "Azure Pipelines tasks to set up the Git for Windows SDK.",
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "categories": [
+    "Azure Pipelines"
+  ],
+  "homepage": "https://github.com/git-for-windows/setup-git-for-windows-sdk",
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/git-for-windows/setup-git-for-windows-sdk"
+  },
+  "links": {
+    "learn": {
+      "uri": "https://github.com/git-for-windows/setup-git-for-windows-sdk/tree/main/azure-pipelines-task/USAGE.md"
+    }
+  },
+  "galleryFlags": [
+    "Private"
+  ],
+  "files": [
+    { "path": "tasks/SetupGitForWindowsSDK/task.json" },
+    { "path": "tasks/SetupGitForWindowsSDK/USAGE.md" },
+    { "path": "tasks/SetupGitForWindowsSDK/dist" }
+  ],
+  "contributions": [
+    {
+      "id": "b32aa6c6-b3bd-431b-a2ed-a82687d38707",
+      "type": "ms.vss-distributed-task.task",
+      "targets": [
+        "ms.vss-distributed-task.tasks"
+      ],
+      "properties": {
+        "name": "tasks/SetupGitForWindowsSDK"
+      }
+    }
+  ]
+}

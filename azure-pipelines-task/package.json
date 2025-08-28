@@ -1,15 +1,15 @@
 {
-  "name": "setup-git-for-windows-sdk",
-  "version": "1.11.0",
+  "name": "setup-git-for-windows-sdk-azure-task",
+  "version": "0.1.0",
   "private": true,
-  "description": "Set up an environment to develop Git for WindowsTypeScript template action",
-  "main": "lib/main.js",
+  "description": "Azure Pipelines task wrapper around setup-git-for-windows-sdk.",
+  "main": "tasks/SetupGitForWindowsSDK/lib/azure-pipelines-task/tasks/SetupGitForWindowsSDK/main.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write \"**/*.ts\" \"!azure-pipelines-task/**/*\"",
-    "format-check": "prettier --check \"**/*.ts\" \"!azure-pipelines-task/**/*\"",
-    "lint": "eslint \"**/*.ts\" --ignore-pattern azure-pipelines-task/",
-    "package": "ncc build --source-map",
+    "format": "prettier --write **/*.ts",
+    "format-check": "prettier --check **/*.ts",
+    "lint": "eslint **/*.ts",
+    "package": "ncc build --source-map --out tasks/SetupGitForWindowsSDK/dist && tfx extension create --manifests vss-extension.json --output-path vsix",
     "test": "jest",
     "all": "npm run build && npm run format && npm run lint && npm run package && npm test"
   },
@@ -17,22 +17,11 @@
     "type": "git",
     "url": "git+https://github.com/git-for-windows/setup-git-for-windows-sdk.git"
   },
-  "keywords": [
-    "actions",
-    "node",
-    "setup",
-    "git",
-    "git-for-windows"
-  ],
-  "author": "",
+  "author": "Git for Windows",
   "license": "MIT",
   "dependencies": {
-    "@actions/cache": "^4.0.5",
-    "@actions/core": "^1.11.1",
-    "@adobe/node-fetch-retry": "^2.2.0",
     "@octokit/rest": "^20.1.2",
-    "node-fetch": "^2.7.0",
-    "unzipper": "^0.12.3"
+    "azure-pipelines-task-lib": "^5.2.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -40,6 +29,7 @@
     "@stylistic/eslint-plugin": "^4.4.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.3.0",
+    "@types/q": "^1.5.8",
     "@types/unzipper": "^0.10.11",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
@@ -54,6 +44,7 @@
     "jest-circus": "^30.0.5",
     "js-yaml": "^4.1.0",
     "prettier": "3.6.2",
+    "tfx-cli": "^0.21.3",
     "ts-jest": "^29.4.1",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0"

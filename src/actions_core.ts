@@ -1,4 +1,4 @@
-import {ICore} from '../src/core'
+import {ICore} from './core'
 import * as core from '@actions/core'
 import * as cache from '@actions/cache'
 

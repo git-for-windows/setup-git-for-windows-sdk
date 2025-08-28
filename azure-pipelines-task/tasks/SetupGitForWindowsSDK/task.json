@@ -1,0 +1,101 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+  "id": "b32aa6c6-b3bd-431b-a2ed-a82687d38707",
+  "name": "SetupGitForWindowsSDK",
+  "friendlyName": "Setup Git for Windows SDK",
+  "description": "Set up an environment to develop Git for Windows.",
+  "helpMarkDown": "Sets up the Git for Windows SDK similar to the GitHub Action git-for-windows/setup-git-for-windows-sdk.",
+  "category": "Utility",
+  "author": "git-for-windows",
+  "version": {
+    "Major": 1,
+    "Minor": 0,
+    "Patch": 0
+  },
+  "instanceNameFormat": "Setup Git for Windows SDK ($(flavor)) ($(architecture))",
+  "inputs": [
+    {
+      "name": "flavor",
+      "type": "pickList",
+      "label": "SDK flavor",
+      "defaultValue": "minimal",
+      "required": false,
+      "options": {
+        "minimal": "Minimal",
+        "makepkg-git": "makepkg-git",
+        "build-installers": "Build Installers",
+        "full": "Full"
+      },
+      "helpMarkDown": "The subset (if any) of the SDK."
+    },
+    {
+      "name": "architecture",
+      "type": "pickList",
+      "label": "Architecture",
+      "defaultValue": "x86_64",
+      "required": false,
+      "options": {
+        "x86_64": "x86_64",
+        "i686": "i686",
+        "aarch64": "ARM64"
+      },
+      "helpMarkDown": "The architecture of the SDK. Note that AMD64 (aarch64) only supports the 'full' flavor for now."
+    },
+    {
+      "name": "msys",
+      "type": "boolean",
+      "label": "MSYS mode",
+      "defaultValue": "false",
+      "required": false,
+      "helpMarkDown": "Whether to start in MSYS mode (defaults to false)."
+    },
+    {
+      "name": "path",
+      "type": "string",
+      "label": "Install path",
+      "defaultValue": "",
+      "required": false,
+      "helpMarkDown": "Where to write the SDK files."
+    },
+    {
+      "name": "cleanup",
+      "type": "boolean",
+      "label": "Cleanup",
+      "defaultValue": "false",
+      "required": false,
+      "helpMarkDown": "Whether to delete the SDK files.  This is only needed on self-hosted runners that are reused for multiple jobs."
+    },
+    {
+      "name": "verbose",
+      "type": "string",
+      "label": "Verbose",
+      "defaultValue": "250",
+      "required": false,
+      "helpMarkDown": "Whether to log files as they are extracted."
+    },
+    {
+      "name": "githubToken",
+      "type": "string",
+      "label": "GitHub token",
+      "defaultValue": "",
+      "required": false,
+      "helpMarkDown": "Personal access token (PAT) used to call into GitHub's REST API. We recommend using a service account with the least permissions necessary. Also when generating a new PAT, select the least scopes necessary. [Learn more about creating and using encrypted secrets](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets)."
+    }
+  ],
+  "outputVariables": [
+    {
+      "name": "result",
+      "description": "Path where the SDK was installed"
+    }
+  ],
+  "execution": {
+    "Node20_1": {
+      "target": "./dist/index.js",
+      "argumentFormat": "",
+      "platforms": [
+        "windows"
+      ],
+      "workingDirectory": "$(currentDirectory)"
+    }
+  }
+}
