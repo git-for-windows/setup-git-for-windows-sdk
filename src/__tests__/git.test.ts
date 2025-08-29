@@ -1,9 +1,25 @@
 import * as fs from 'fs'
 import * as git from '../git'
 import * as spawn from '../spawn'
-import {ActionsCore} from '../actions_core'
+import {ICore} from '../core'
 
-const core = new ActionsCore()
+const core: ICore = {
+  isCacheAvailable: () => false,
+  restoreCache: async () => undefined,
+  saveCache: async () => 0,
+  getInput: () => '',
+  setOutput: () => {},
+  addPath: () => {},
+  exportVariable: () => {},
+  info: () => {},
+  warning: () => {},
+  error: () => {},
+  setFailed: () => {},
+  startGroup: () => {},
+  endGroup: () => {},
+  saveState: () => {},
+  getState: () => ''
+}
 
 // We want to mock only the rmSync method on the fs module, and leave everything
 // else untouched.
