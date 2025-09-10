@@ -48,21 +48,126 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ActionsCore = void 0;
+const action_1 = __nccwpck_require__(4339);
+const core = __importStar(__nccwpck_require__(7484));
+const cache = __importStar(__nccwpck_require__(5116));
+class ActionsCore {
+    isCacheAvailable() {
+        return cache.isFeatureAvailable();
+    }
+    restoreCache(paths, primaryKey) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return cache.restoreCache(paths, primaryKey);
+        });
+    }
+    saveCache(paths, key) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return cache.saveCache(paths, key);
+        });
+    }
+    getInput(name) {
+        return core.getInput(name);
+    }
+    setOutput(name, value) {
+        core.setOutput(name, value);
+    }
+    addPath(inputPath) {
+        core.addPath(inputPath);
+    }
+    exportVariable(name, value) {
+        core.exportVariable(name, value);
+    }
+    info(message) {
+        core.info(message);
+    }
+    warning(message) {
+        core.warning(message);
+    }
+    error(message) {
+        core.error(message);
+    }
+    setFailed(message) {
+        core.setFailed(message);
+    }
+    startGroup(name) {
+        core.startGroup(name);
+    }
+    endGroup() {
+        core.endGroup();
+    }
+    saveState(name, value) {
+        core.saveState(name, value);
+    }
+    getState(name) {
+        return core.getState(name);
+    }
+}
+exports.ActionsCore = ActionsCore;
+(0, action_1.run)(new ActionsCore());
+
+
+/***/ }),
+
+/***/ 4339:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isPost = void 0;
-const core = __importStar(__nccwpck_require__(7484));
+exports.run = run;
 const downloader_1 = __nccwpck_require__(6426);
-const cache_1 = __nccwpck_require__(5116);
 const process_1 = __importDefault(__nccwpck_require__(932));
 const child_process_1 = __nccwpck_require__(5317);
 const git_1 = __nccwpck_require__(1417);
 const ci_artifacts_1 = __nccwpck_require__(657);
 const fs = __importStar(__nccwpck_require__(9896));
-const flavor = core.getInput('flavor');
-const architecture = core.getInput('architecture');
 /**
  * Some Azure VM types have a temporary disk which is local to the VM and therefore provides
  * _much_ faster disk IO than the OS Disk (or any other attached disk).
@@ -72,14 +177,14 @@ const architecture = core.getInput('architecture');
  *
  * https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview#temporary-disk
  */
-function getDriveLetterPrefix() {
+function getDriveLetterPrefix(core) {
     if (fs.existsSync('D:/')) {
         core.info('Found a fast, temporary disk on this VM (D:/). Will use that.');
         return 'D:/';
     }
     return 'C:/';
 }
-function run() {
+function setup(core, flavor, architecture) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             if (process_1.default.platform !== 'win32') {
@@ -90,9 +195,9 @@ function run() {
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';
             const { artifactName, download, id } = flavor === 'minimal'
-                ? yield (0, ci_artifacts_1.getViaCIArtifacts)(architecture, githubToken)
-                : yield (0, git_1.getViaGit)(flavor, architecture, githubToken);
-            const outputDirectory = core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`;
+                ? yield (0, ci_artifacts_1.getViaCIArtifacts)(core, architecture, githubToken)
+                : yield (0, git_1.getViaGit)(core, flavor, architecture, githubToken);
+            const outputDirectory = core.getInput('path') || `${getDriveLetterPrefix(core)}${artifactName}`;
             core.setOutput('result', outputDirectory);
             let useCache;
             switch (core.getInput('cache')) {
@@ -105,9 +210,12 @@ function run() {
                 default:
                     useCache = false;
             }
+            if (!core.isCacheAvailable()) {
+                useCache = false;
+            }
             let needToDownload = true;
             try {
-                if (useCache && (yield (0, cache_1.restoreCache)([outputDirectory], id))) {
+                if (useCache && (yield core.restoreCache([outputDirectory], id))) {
                     core.info(`Cached ${id} was successfully restored`);
                     needToDownload = false;
                 }
@@ -120,7 +228,7 @@ function run() {
                 core.info(`Downloading ${artifactName}`);
                 yield download(outputDirectory, verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true');
                 try {
-                    if (useCache && !(yield (0, cache_1.saveCache)([outputDirectory], id))) {
+                    if (useCache && !(yield core.saveCache([outputDirectory], id))) {
                         core.warning(`Failed to cache ${id}`);
                     }
                 }
@@ -181,13 +289,13 @@ function run() {
         }
     });
 }
-function cleanup() {
+function cleanup(core, flavor, architecture) {
     if (core.getInput('cleanup') !== 'true') {
         core.info(`Won't clean up SDK files as the 'cleanup' input was not provided or doesn't equal 'true'.`);
         return;
     }
     const outputDirectory = core.getInput('path') ||
-        `${getDriveLetterPrefix()}${(0, git_1.getArtifactMetadata)(flavor, architecture).artifactName}`;
+        `${getDriveLetterPrefix(core)}${(0, git_1.getArtifactMetadata)(flavor, architecture).artifactName}`;
     /**
      * Shelling out to `rm -rf` is more than twice as fast as Node's `fs.rmSync` method.
      * Let's use it if it's available, and otherwise fall back to `fs.rmSync`.
@@ -211,22 +319,25 @@ function cleanup() {
     }
     core.info(`Finished cleaning up ${outputDirectory}.`);
 }
-/**
- * Indicates whether the POST action is running
- */
-exports.isPost = !!core.getState('isPost');
-if (!exports.isPost) {
-    run();
-    /*
-     * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
-     * This is necessary since we don't have a separate entry point.
-     * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
-     */
-    core.saveState('isPost', 'true');
-}
-else {
-    // If the POST action is running, we cleanup our artifacts
-    cleanup();
+function run(core) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const flavor = core.getInput('flavor');
+        const architecture = core.getInput('architecture');
+        const isPost = !!core.getState('isPost');
+        if (!isPost) {
+            setup(core, flavor, architecture);
+            /*
+             * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
+             * This is necessary since we don't have a separate entry point.
+             * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
+             */
+            core.saveState('isPost', 'true');
+        }
+        else {
+            // If the POST action is running, we cleanup our artifacts
+            cleanup(core, flavor, architecture);
+        }
+    });
 }
 
 
@@ -281,7 +392,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getViaCIArtifacts = getViaCIArtifacts;
-const core = __importStar(__nccwpck_require__(7484));
 const rest_1 = __nccwpck_require__(5772);
 const git_1 = __nccwpck_require__(1417);
 const child_process_1 = __nccwpck_require__(5317);
@@ -293,7 +403,7 @@ function sleep(milliseconds) {
         });
     });
 }
-function getViaCIArtifacts(architecture, githubToken) {
+function getViaCIArtifacts(core, architecture, githubToken) {
     return __awaiter(this, void 0, void 0, function* () {
         const owner = 'git-for-windows';
         const { repo, artifactName } = (0, git_1.getArtifactMetadata)('minimal', architecture);
@@ -441,7 +551,6 @@ exports.gitForWindowsUsrBinPath = void 0;
 exports.getArtifactMetadata = getArtifactMetadata;
 exports.clone = clone;
 exports.getViaGit = getViaGit;
-const core = __importStar(__nccwpck_require__(7484));
 const spawn_1 = __nccwpck_require__(3494);
 const rest_1 = __nccwpck_require__(5772);
 const path_1 = __nccwpck_require__(6928);
@@ -477,8 +586,8 @@ function getArtifactMetadata(flavor, architecture) {
     const artifactName = `${repo}-${flavor}`;
     return { repo, artifactName };
 }
-function clone(url_1, destination_1, verbose_1) {
-    return __awaiter(this, arguments, void 0, function* (url, destination, verbose, cloneExtraOptions = []) {
+function clone(core_1, url_1, destination_1, verbose_1) {
+    return __awaiter(this, arguments, void 0, function* (core, url, destination, verbose, cloneExtraOptions = []) {
         if (verbose)
             core.info(`Cloning ${url} to ${destination}`);
         const child = yield (0, spawn_1.spawnAndWaitForExitCode)(gitExePath, [
@@ -511,7 +620,7 @@ function updateHEAD(bareRepositoryPath, headSHA) {
         }
     });
 }
-function getViaGit(flavor, architecture, githubToken) {
+function getViaGit(core, flavor, architecture, githubToken) {
     return __awaiter(this, void 0, void 0, function* () {
         const owner = 'git-for-windows';
         const { repo, artifactName } = getArtifactMetadata(flavor, architecture);
@@ -556,10 +665,7 @@ function getViaGit(flavor, architecture, githubToken) {
             download: (outputDirectory_1, ...args_1) => __awaiter(this, [outputDirectory_1, ...args_1], void 0, function* (outputDirectory, verbose = false) {
                 core.startGroup(`Cloning ${repo}`);
                 const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none'];
-                yield clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
-                    '--bare',
-                    ...partialCloneArg
-                ]);
+                yield clone(core, `https://github.com/${owner}/${repo}`, `.tmp`, verbose, ['--bare', ...partialCloneArg]);
                 core.endGroup();
                 let child;
                 if (flavor === 'full') {
@@ -573,7 +679,7 @@ function getViaGit(flavor, architecture, githubToken) {
                 else {
                     yield updateHEAD('.tmp', head_sha);
                     core.startGroup('Cloning build-extra');
-                    yield clone(`https://github.com/${owner}/build-extra`, '.tmp/build-extra', verbose);
+                    yield clone(core, `https://github.com/${owner}/build-extra`, '.tmp/build-extra', verbose);
                     core.endGroup();
                     core.startGroup(`Creating ${flavor} artifact`);
                     const traceArg = verbose ? ['-x'] : [];
@@ -43499,7 +43605,7 @@ module.exports = __toCommonJS(dist_src_exports);
 var import_universal_user_agent = __nccwpck_require__(3843);
 var import_before_after_hook = __nccwpck_require__(2732);
 var import_request = __nccwpck_require__(6255);
-var import_graphql = __nccwpck_require__(2388);
+var import_graphql = __nccwpck_require__(7);
 var import_auth_token = __nccwpck_require__(7864);
 
 // pkg/dist-src/version.js
@@ -44000,7 +44106,7 @@ var endpoint = withDefaults(null, DEFAULTS);
 
 /***/ }),
 
-/***/ 2388:
+/***/ 7:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -47490,7 +47596,7 @@ exports.MetricsAPI = MetricsAPI;
 
 /***/ }),
 
-/***/ 7:
+/***/ 2388:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -48936,7 +49042,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.propagation = void 0;
 // Split module-level variable definition into separate files to allow
 // tree-shaking on each api instance.
-const propagation_1 = __nccwpck_require__(7);
+const propagation_1 = __nccwpck_require__(2388);
 /** Entrypoint for propagation API */
 exports.propagation = propagation_1.PropagationAPI.getInstance();
 //# sourceMappingURL=propagation-api.js.map
