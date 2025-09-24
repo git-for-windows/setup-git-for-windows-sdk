@@ -1,7 +1,25 @@
 import * as fs from 'fs'
 import * as git from '../git'
 import * as spawn from '../spawn'
-import * as core from '@actions/core'
+import {ICore} from '../core'
+
+const core: ICore = {
+  isCacheAvailable: () => false,
+  restoreCache: async () => undefined,
+  saveCache: async () => 0,
+  getInput: () => '',
+  setOutput: () => {},
+  addPath: () => {},
+  exportVariable: () => {},
+  info: () => {},
+  warning: () => {},
+  error: () => {},
+  setFailed: () => {},
+  startGroup: () => {},
+  endGroup: () => {},
+  saveState: () => {},
+  getState: () => ''
+}
 
 // We want to mock only the rmSync method on the fs module, and leave everything
 // else untouched.
@@ -33,7 +51,11 @@ describe('git', () => {
     const flavor = 'build-installers'
     const architecture = 'x86_64'
     const outputDirectory = 'outputDirectory'
-    const {artifactName, download} = await git.getViaGit(flavor, architecture)
+    const {artifactName, download} = await git.getViaGit(
+      core,
+      flavor,
+      architecture
+    )
 
     expect(artifactName).toEqual('git-sdk-64-build-installers')
 
@@ -66,7 +88,11 @@ describe('git', () => {
     const flavor = 'full'
     const architecture = 'x86_64'
     const outputDirectory = 'outputDirectory'
-    const {artifactName, download} = await git.getViaGit(flavor, architecture)
+    const {artifactName, download} = await git.getViaGit(
+      core,
+      flavor,
+      architecture
+    )
 
     expect(artifactName).toEqual('git-sdk-64-full')
 
