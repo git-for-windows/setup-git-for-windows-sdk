@@ -30,7 +30,7 @@
     "@actions/cache": "^4.1.0",
     "@actions/core": "^1.11.1",
     "@adobe/node-fetch-retry": "^2.2.0",
-    "@octokit/rest": "^20.1.2",
+    "@octokit/rest": "^22.0.1",
     "node-fetch": "^2.7.0",
     "unzipper": "^0.12.3"
   },
