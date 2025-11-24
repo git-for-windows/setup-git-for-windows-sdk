@@ -16,7 +16,7 @@ jobs:
           - flavor: makepkg-git
             architecture: i686
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: run in-place
         uses: ./
         with:
