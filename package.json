@@ -28,7 +28,7 @@
   "license": "MIT",
   "dependencies": {
     "@actions/cache": "^4.1.0",
-    "@actions/core": "^1.11.1",
+    "@actions/core": "^2.0.0",
     "@adobe/node-fetch-retry": "^2.2.0",
     "@octokit/rest": "^20.1.2",
     "node-fetch": "^2.7.0",
