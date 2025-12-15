@@ -30,7 +30,7 @@ jobs:
           git clone --depth 1 --single-branch -b main https://github.com/git-for-windows/build-extra &&
           # build installer
           ./build-extra/installer/release.sh --output=$PWD/installer-${{ matrix.architecture }} 0-test
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: matrix.flavor == 'build-installers'
         with:
           name: installer-${{ matrix.architecture }}
