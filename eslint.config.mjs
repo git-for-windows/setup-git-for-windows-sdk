@@ -5,10 +5,12 @@ import tsParser from "@typescript-eslint/parser";
 import tseslint from 'typescript-eslint';
 import github from 'eslint-plugin-github';
 export default tseslint.config(
+    {
+        ignores: ["**/dist/", "**/lib/", "**/node_modules/", "eslint.config.mjs"],
+    },
     github.getFlatConfigs().recommended,
     ...github.getFlatConfigs().typescript,
     {
-        ignores: ["**/dist/", "**/lib/", "**/node_modules/", "eslint.config.mjs"],
         plugins: {
             "@stylistic": stylistic,
             "anti-trojan-source": antiTrojanSource,

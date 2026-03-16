@@ -9,17 +9,17 @@ vi.mock('@actions/core', async () => ({
   ...(await vi.importActual('@actions/core'))
 }))
 
-vi.mock('../spawn', async () => ({
-  ...(await vi.importActual('../spawn'))
+vi.mock('../spawn.js', async () => ({
+  ...(await vi.importActual('../spawn.js'))
 }))
 
-vi.mock('../git', async () => ({
-  ...(await vi.importActual('../git'))
+vi.mock('../git.js', async () => ({
+  ...(await vi.importActual('../git.js'))
 }))
 
 const fs = await import('fs')
-const git = await import('../git')
-const spawn = await import('../spawn')
+const git = await import('../git.js')
+const spawn = await import('../spawn.js')
 const core = await import('@actions/core')
 
 describe('git', () => {

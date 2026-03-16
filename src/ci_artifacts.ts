@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import {Octokit} from '@octokit/rest'
-import {getArtifactMetadata} from './git'
+import {getArtifactMetadata} from './git.js'
 import {spawn} from 'child_process'
 import * as fs from 'fs'
 

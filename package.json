@@ -11,7 +11,8 @@
     "lint": "eslint **/*.ts",
     "package": "ncc build --source-map",
     "test": "vitest run",
-    "all": "npm run build && npm run format && npm run lint && npm run package && npm test"
+    "typecheck": "tsc --noEmit -p tsconfig.eslint.json",
+    "all": "npm run build && npm run format && npm run lint && npm run typecheck && npm run package && npm test"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
     "git",
     "git-for-windows"
   ],
+  "type": "module",
   "author": "",
   "license": "MIT",
   "dependencies": {
