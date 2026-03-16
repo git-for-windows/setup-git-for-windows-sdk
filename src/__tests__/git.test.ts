@@ -1,38 +1,45 @@
-import * as fs from 'fs'
-import * as git from '../git'
-import * as spawn from '../spawn'
-import * as core from '@actions/core'
+import {describe, test, expect, beforeEach, vi} from 'vitest'
 
-// We want to mock only the rmSync method on the fs module, and leave everything
-// else untouched.
-jest.mock('fs', () => ({
-  ...jest.requireActual('fs'),
-  rmSync: jest.fn()
+vi.mock('fs', async () => ({
+  ...(await vi.importActual('fs')),
+  rmSync: vi.fn()
 }))
 
-describe('git', () => {
-  // We don't want to _actually_ spawn external commands, so we mock the function
-  let spawnSpy: jest.SpyInstance
-  // Capture the startGroup calls
-  let coreSpy: jest.SpyInstance
-  // The script calls fs.rmSync, so let's mock it and verify it was called
-  let rmSyncSpy: jest.SpyInstance
+vi.mock('@actions/core', async () => ({
+  ...(await vi.importActual('@actions/core'))
+}))
 
+vi.mock('../spawn', async () => ({
+  ...(await vi.importActual('../spawn'))
+}))
+
+vi.mock('../git', async () => ({
+  ...(await vi.importActual('../git'))
+}))
+
+const fs = await import('fs')
+const git = await import('../git')
+const spawn = await import('../spawn')
+const core = await import('@actions/core')
+
+describe('git', () => {
   beforeEach(() => {
-    coreSpy = jest.spyOn(core, 'startGroup')
-    spawnSpy = jest.spyOn(spawn, 'spawnAndWaitForExitCode').mockResolvedValue({
-      // 0 is the exit code for success
-      exitCode: 0
-    })
-    // We don't want to _actually_ clone the repo, so we mock the function
-    jest.spyOn(git, 'clone').mockResolvedValue()
-    rmSyncSpy = fs.rmSync as jest.Mocked<typeof fs>['rmSync']
+    vi.restoreAllMocks()
   })
 
   test('getViaGit build-installers x86_64', async () => {
     const flavor = 'build-installers'
     const architecture = 'x86_64'
     const outputDirectory = 'outputDirectory'
+
+    const coreSpy = vi.spyOn(core, 'startGroup')
+    const spawnSpy = vi
+      .spyOn(spawn, 'spawnAndWaitForExitCode')
+      .mockResolvedValue({
+        exitCode: 0
+      })
+    vi.spyOn(git, 'clone').mockResolvedValue()
+
     const {artifactName, download} = await git.getViaGit(flavor, architecture)
 
     expect(artifactName).toEqual('git-sdk-64-build-installers')
@@ -50,22 +57,28 @@ describe('git', () => {
       ]),
       expect.objectContaining({
         env: expect.objectContaining({
-          // We want to ensure that the correct /bin folders are in the PATH,
-          // so that please.sh can find git.exe
-          // https://github.com/git-for-windows/setup-git-for-windows-sdk/issues/951
           PATH:
             expect.stringContaining('/clangarm64/bin') &&
             expect.stringContaining('/mingw64/bin')
         })
       })
     )
-    expect(rmSyncSpy).toHaveBeenCalledWith('.tmp', {recursive: true})
+    expect(fs.rmSync).toHaveBeenCalledWith('.tmp', {recursive: true})
   })
 
   test('getViaGit full x86_64', async () => {
     const flavor = 'full'
     const architecture = 'x86_64'
     const outputDirectory = 'outputDirectory'
+
+    const coreSpy = vi.spyOn(core, 'startGroup')
+    const spawnSpy = vi
+      .spyOn(spawn, 'spawnAndWaitForExitCode')
+      .mockResolvedValue({
+        exitCode: 0
+      })
+    vi.spyOn(git, 'clone').mockResolvedValue()
+
     const {artifactName, download} = await git.getViaGit(flavor, architecture)
 
     expect(artifactName).toEqual('git-sdk-64-full')
@@ -83,6 +96,6 @@ describe('git', () => {
       ]),
       expect.any(Object)
     )
-    expect(rmSyncSpy).toHaveBeenCalledWith('.tmp', {recursive: true})
+    expect(fs.rmSync).toHaveBeenCalledWith('.tmp', {recursive: true})
   })
 })

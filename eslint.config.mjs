@@ -1,6 +1,5 @@
 import stylistic from "@stylistic/eslint-plugin";
 import antiTrojanSource from "eslint-plugin-anti-trojan-source";
-import jest from "eslint-plugin-jest";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import tseslint from 'typescript-eslint';
@@ -9,11 +8,10 @@ export default tseslint.config(
     github.getFlatConfigs().recommended,
     ...github.getFlatConfigs().typescript,
     {
-        ignores: ["**/dist/", "**/lib/", "**/node_modules/", "**/jest.config.js"],
+        ignores: ["**/dist/", "**/lib/", "**/node_modules/", "eslint.config.mjs"],
         plugins: {
             "@stylistic": stylistic,
             "anti-trojan-source": antiTrojanSource,
-            jest,
         },
         settings: {
             "import/resolver": {
@@ -22,15 +20,13 @@ export default tseslint.config(
         },
         languageOptions: {
             globals: {
-                ...globals.jest,
-                ...jest.environments.globals.globals,
                 ...globals.node,
             },
             parser: tsParser,
             ecmaVersion: 9,
             sourceType: "module",
             parserOptions: {
-                project: "./tsconfig.json",
+                project: "./tsconfig.eslint.json",
             },
         },
         rules: {
@@ -73,7 +69,7 @@ export default tseslint.config(
             "anti-trojan-source/no-bidi": "error",
             camelcase: "off",
             "eslint-comments/no-use": "off",
-            "github/filenames-match-regex": ["error", "^[a-z_]+(\\.test|\\.d)?$"],
+            "github/filenames-match-regex": ["error", "^[a-z_]+([.-][a-z_]+)*(\\.test|\\.d)?$"],
             "i18n-text/no-en": "off",
             "import/no-namespace": "off",
             "no-unused-vars": "off",

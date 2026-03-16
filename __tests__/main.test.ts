@@ -1,4 +1,5 @@
 /* eslint no-console: "off" */
+import {test, expect} from 'vitest'
 import * as child_process from 'child_process'
 import * as path from 'path'
 import * as process from 'process'
@@ -40,33 +41,35 @@ if (process.env.RUN_NETWORK_TESTS !== 'true') {
     ).toEqual(1)
   })
 
-  jest.setTimeout(5 * 60 * 1000) // this can easily take a minute or five
+  test(
+    'extract the 64-bit minimal SDK',
+    async () => {
+      const outputDirectory = `${__dirname}/../git-sdk-64-minimal`
+      expect(
+        await runAction({
+          env: {
+            INPUT_FLAVOR: 'minimal',
+            INPUT_ARCHITECTURE: 'x86_64',
+            INPUT_PATH: outputDirectory,
+            INPUT_VERBOSE: '250',
+            INPUT_CACHE: 'true'
+          }
+        })
+      ).toEqual(0)
+      expect(
+        statSync.bind(null, `${outputDirectory}/mingw64/bin/gcc.exe`)
+      ).not.toThrow()
 
-  test('extract the 64-bit minimal SDK', async () => {
-    const outputDirectory = `${__dirname}/../git-sdk-64-minimal`
-    expect(
-      await runAction({
-        env: {
-          INPUT_FLAVOR: 'minimal',
-          INPUT_ARCHITECTURE: 'x86_64',
-          INPUT_PATH: outputDirectory,
-          INPUT_VERBOSE: '250',
-          INPUT_CACHE: 'true'
+      const hello = child_process.spawnSync(
+        'usr\\bin\\bash.exe',
+        ['-lc', 'cat <(echo hello)'],
+        {
+          cwd: outputDirectory
         }
-      })
-    ).toEqual(0)
-    expect(
-      statSync.bind(null, `${outputDirectory}/mingw64/bin/gcc.exe`)
-    ).not.toThrow()
-
-    const hello = child_process.spawnSync(
-      'usr\\bin\\bash.exe',
-      ['-lc', 'cat <(echo hello)'],
-      {
-        cwd: outputDirectory
-      }
-    )
-    expect(hello.stderr.toString()).toBe('')
-    expect(hello.stdout.toString()).toBe('hello\n')
-  })
+      )
+      expect(hello.stderr.toString()).toBe('')
+      expect(hello.stdout.toString()).toBe('hello\n')
+    },
+    5 * 60 * 1000
+  )
 }
