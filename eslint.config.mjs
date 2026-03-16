@@ -1,4 +1,3 @@
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import stylistic from "@stylistic/eslint-plugin";
 import antiTrojanSource from "eslint-plugin-anti-trojan-source";
 import jest from "eslint-plugin-jest";
@@ -6,18 +5,20 @@ import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import tseslint from 'typescript-eslint';
 import github from 'eslint-plugin-github';
-import importPlugin from 'eslint-plugin-import';
-
-export default tseslint.config([
+export default tseslint.config(
     github.getFlatConfigs().recommended,
     ...github.getFlatConfigs().typescript,
-    importPlugin.flatConfigs.typescript,
     {
         ignores: ["**/dist/", "**/lib/", "**/node_modules/", "**/jest.config.js"],
         plugins: {
             "@stylistic": stylistic,
             "anti-trojan-source": antiTrojanSource,
             jest,
+        },
+        settings: {
+            "import/resolver": {
+                typescript: true,
+            },
         },
         languageOptions: {
             globals: {
@@ -43,7 +44,7 @@ export default tseslint.config([
             "@typescript-eslint/explicit-member-accessibility": ["error", {
                 accessibility: "no-public",
             }],
-            "@stylistic/func-call-spacing": ["error", "never"],
+            "@stylistic/function-call-spacing": ["error", "never"],
             "@typescript-eslint/no-array-constructor": "error",
             "@typescript-eslint/no-empty-interface": "error",
             "@typescript-eslint/no-explicit-any": "error",
@@ -79,4 +80,4 @@ export default tseslint.config([
             semi: "off",
         },
     }
-]);
+);
