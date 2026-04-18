@@ -33,7 +33,7 @@ jobs:
         run: |
           git add -u -- dist/ &&
           git diff-index --cached --exit-code HEAD -- ||
-          echo "::set-output name=need-to-commit::yes"
+          echo "need-to-commit=yes" >> "$GITHUB_OUTPUT"
       - name: commit & push
         if: steps.check.outputs.need-to-commit == 'yes'
         run: |
