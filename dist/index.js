@@ -57,6 +57,7 @@ const core = __importStar(__nccwpck_require__(7484));
 const downloader_1 = __nccwpck_require__(6426);
 const cache_1 = __nccwpck_require__(5116);
 const process_1 = __importDefault(__nccwpck_require__(932));
+const os = __importStar(__nccwpck_require__(857));
 const child_process_1 = __nccwpck_require__(5317);
 const git_1 = __nccwpck_require__(1417);
 const ci_artifacts_1 = __nccwpck_require__(657);
@@ -89,8 +90,11 @@ function run() {
             const githubToken = core.getInput('github-token');
             const verbose = core.getInput('verbose');
             const msysMode = core.getInput('msys') === 'true';
-            const { artifactName, download, id } = flavor === 'minimal'
-                ? yield (0, ci_artifacts_1.getViaCIArtifacts)(architecture, githubToken)
+            // Windows Server 2025 / Windows 11 24H2 (build 26100+) ships a tar.exe
+            // that handles Zstandard natively; older versions do not.
+            const canExtractZstd = parseInt(os.release().split('.')[2]) >= 26100;
+            const { artifactName, download, id } = flavor === 'minimal' || (flavor === 'build-installers' && canExtractZstd)
+                ? yield (0, ci_artifacts_1.getViaCIArtifacts)(flavor, architecture, githubToken)
                 : yield (0, git_1.getViaGit)(flavor, architecture, githubToken);
             const outputDirectory = core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`;
             core.setOutput('result', outputDirectory);
@@ -293,10 +297,10 @@ function sleep(milliseconds) {
         });
     });
 }
-function getViaCIArtifacts(architecture, githubToken) {
+function getViaCIArtifacts(flavor, architecture, githubToken) {
     return __awaiter(this, void 0, void 0, function* () {
         const owner = 'git-for-windows';
-        const { repo, artifactName } = (0, git_1.getArtifactMetadata)('minimal', architecture);
+        const { repo, artifactName } = (0, git_1.getArtifactMetadata)(flavor, architecture);
         const octokit = githubToken ? new rest_1.Octokit({ auth: githubToken }) : new rest_1.Octokit();
         const { name, updated_at: updatedAt, browser_download_url: url } = yield (() => __awaiter(this, void 0, void 0, function* () {
             let error;
@@ -313,12 +317,15 @@ function getViaCIArtifacts(architecture, githubToken) {
                     continue;
                 }
                 core.info(`Found ci-artifacts release: ${ciArtifactsResponse.data.html_url}`);
-                const tarGzArtifact = ciArtifactsResponse.data.assets.find(asset => asset.name.endsWith('.tar.gz'));
-                if (!tarGzArtifact) {
-                    error = new Error(`Failed to find a .tar.gz artifact in the ci-artifacts release of the ${owner}/${repo} repo`);
+                const assetName = flavor === 'build-installers'
+                    ? `git-sdk-${architecture}-build-installers.tar.zst`
+                    : `git-sdk-${architecture}-minimal.tar.gz`;
+                const artifact = ciArtifactsResponse.data.assets.find(asset => asset.name === assetName);
+                if (!artifact) {
+                    error = new Error(`Failed to find ${assetName} in the ci-artifacts release of the ${owner}/${repo} repo`);
                     continue;
                 }
-                return tarGzArtifact;
+                return artifact;
             }
             throw error;
         }))();
