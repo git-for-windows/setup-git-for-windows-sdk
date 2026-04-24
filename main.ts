@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import {mkdirp} from './src/downloader'
 import {restoreCache, saveCache} from '@actions/cache'
 import process from 'process'
+import * as os from 'os'
 import {spawnSync} from 'child_process'
 import {
   getArtifactMetadata,
@@ -45,9 +46,13 @@ async function run(): Promise<void> {
     const verbose = core.getInput('verbose')
     const msysMode = core.getInput('msys') === 'true'
 
+    // Windows Server 2025 / Windows 11 24H2 (build 26100+) ships a tar.exe
+    // that handles Zstandard natively; older versions do not.
+    const canExtractZstd = parseInt(os.release().split('.')[2]) >= 26100
+
     const {artifactName, download, id} =
-      flavor === 'minimal'
-        ? await getViaCIArtifacts(architecture, githubToken)
+      flavor === 'minimal' || (flavor === 'build-installers' && canExtractZstd)
+        ? await getViaCIArtifacts(flavor, architecture, githubToken)
         : await getViaGit(flavor, architecture, githubToken)
     const outputDirectory =
       core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`

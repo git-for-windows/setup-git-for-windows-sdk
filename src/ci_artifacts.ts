@@ -11,6 +11,7 @@ async function sleep(milliseconds: number): Promise<void> {
 }
 
 export async function getViaCIArtifacts(
+  flavor: string,
   architecture: string,
   githubToken?: string
 ): Promise<{
@@ -23,7 +24,7 @@ export async function getViaCIArtifacts(
 }> {
   const owner = 'git-for-windows'
 
-  const {repo, artifactName} = getArtifactMetadata('minimal', architecture)
+  const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
 
   const octokit = githubToken ? new Octokit({auth: githubToken}) : new Octokit()
 
@@ -52,18 +53,22 @@ export async function getViaCIArtifacts(
       core.info(
         `Found ci-artifacts release: ${ciArtifactsResponse.data.html_url}`
       )
-      const tarGzArtifact = ciArtifactsResponse.data.assets.find(asset =>
-        asset.name.endsWith('.tar.gz')
+      const assetName =
+        flavor === 'build-installers'
+          ? `git-sdk-${architecture}-build-installers.tar.zst`
+          : `git-sdk-${architecture}-minimal.tar.gz`
+      const artifact = ciArtifactsResponse.data.assets.find(
+        asset => asset.name === assetName
       )
 
-      if (!tarGzArtifact) {
+      if (!artifact) {
         error = new Error(
-          `Failed to find a .tar.gz artifact in the ci-artifacts release of the ${owner}/${repo} repo`
+          `Failed to find ${assetName} in the ci-artifacts release of the ${owner}/${repo} repo`
         )
         continue
       }
 
-      return tarGzArtifact
+      return artifact
     }
     throw error
   })()

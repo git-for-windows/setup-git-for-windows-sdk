@@ -35,6 +35,24 @@ module.exports = {
                         }
                     }
                 }),
+                getReleaseByTag: jest.fn().mockResolvedValue({
+                    status: 200,
+                    data: {
+                        html_url: 'https://github.com/git-for-windows/git-sdk-64/releases/tag/ci-artifacts',
+                        assets: [
+                            {
+                                name: 'git-sdk-x86_64-minimal.tar.gz',
+                                updated_at: '2025-08-12T12:00:00Z',
+                                browser_download_url: 'https://example.com/git-sdk-x86_64-minimal.tar.gz'
+                            },
+                            {
+                                name: 'git-sdk-x86_64-build-installers.tar.zst',
+                                updated_at: '2025-08-12T12:00:00Z',
+                                browser_download_url: 'https://example.com/git-sdk-x86_64-build-installers.tar.zst'
+                            }
+                        ]
+                    }
+                }),
                 listReleases: jest.fn().mockResolvedValue({
                     data: [
                         {
