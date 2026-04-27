@@ -31,8 +31,14 @@ inputs:
     default: '250'
   cache:
     required: false
-    description: 'Use @actions/cache to accelerate this Action'
-    default: 'auto'
+    description: >
+      Use @actions/cache to accelerate this Action.
+      Note: GitHub Actions caches are shared across branches and
+      workflows within a repository, which makes them susceptible
+      to cache-poisoning attacks (see e.g. Cacheract,
+      https://github.com/AdnaneKhan/Cacheract). Caching is
+      therefore disabled by default.
+    default: 'false'
   github-token:
     description: >
       Personal access token (PAT) used to call into GitHub's REST API.
