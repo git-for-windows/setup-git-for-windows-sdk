@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {spawnAndWaitForExitCode, SpawnReturnArgs} from './spawn'
+import {spawnAndWaitForExitCode, SpawnReturnArgs} from './spawn.js'
 import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
 import * as fs from 'fs'

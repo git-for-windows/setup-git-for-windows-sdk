@@ -22,9 +22,13 @@ jobs:
           repository: ${{ github.event.repository.full_name }}
           ref: ${{ inputs.branch }}${{ github.event.ref }}
           token: ${{ secrets.GIT_FOR_WINDOWS_CI_PUSH }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
       - run: npm ci
       - run: npm run build
       - run: npm run lint
+      - run: npm run typecheck
       - run: npm run format && git diff-files
       - run: npm run test
       - run: npm run package
@@ -33,7 +37,7 @@ jobs:
         run: |
           git add -u -- dist/ &&
           git diff-index --cached --exit-code HEAD -- ||
-          echo "::set-output name=need-to-commit::yes"
+          echo "need-to-commit=yes" >> "$GITHUB_OUTPUT"
       - name: commit & push
         if: steps.check.outputs.need-to-commit == 'yes'
         run: |

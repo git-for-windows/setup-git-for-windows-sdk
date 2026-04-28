@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {mkdirp} from './src/downloader'
+import {mkdirp} from './src/downloader.js'
 import {restoreCache, saveCache} from '@actions/cache'
 import process from 'process'
 import * as os from 'os'
@@ -8,8 +8,8 @@ import {
   getArtifactMetadata,
   getViaGit,
   gitForWindowsUsrBinPath
-} from './src/git'
-import {getViaCIArtifacts} from './src/ci_artifacts'
+} from './src/git.js'
+import {getViaCIArtifacts} from './src/ci_artifacts.js'
 import * as fs from 'fs'
 
 const flavor = core.getInput('flavor')

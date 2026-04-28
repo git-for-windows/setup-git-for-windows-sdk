@@ -1,9 +1,9 @@
-module.exports = {
-    __esModule: true,
-    Octokit: jest.fn().mockImplementation(() => {
+import {vi} from 'vitest'
+
+export const Octokit = vi.fn().mockImplementation(() => {
         return {
             actions: {
-                listWorkflowRuns: jest.fn().mockResolvedValue({
+                listWorkflowRuns: vi.fn().mockResolvedValue({
                     data: {
                         workflow_runs: [
                             {
@@ -12,7 +12,7 @@ module.exports = {
                         ]
                     }
                 }),
-                listWorkflowRunArtifacts: jest.fn().mockResolvedValue({
+                listWorkflowRunArtifacts: vi.fn().mockResolvedValue({
                     data: {
                         artifacts: [
                             {
@@ -23,19 +23,19 @@ module.exports = {
                         ]
                     }
                 }),
-                downloadArtifact: jest.fn().mockResolvedValue({
+                downloadArtifact: vi.fn().mockResolvedValue({
                     data: 'mock artifact content'
                 })
             },
             repos: {
-                getBranch: jest.fn().mockResolvedValue({
+                getBranch: vi.fn().mockResolvedValue({
                     data: {
                         commit: {
                             sha: 'mock_sha'
                         }
                     }
                 }),
-                getReleaseByTag: jest.fn().mockResolvedValue({
+                getReleaseByTag: vi.fn().mockResolvedValue({
                     status: 200,
                     data: {
                         html_url: 'https://github.com/git-for-windows/git-sdk-64/releases/tag/ci-artifacts',
@@ -53,7 +53,7 @@ module.exports = {
                         ]
                     }
                 }),
-                listReleases: jest.fn().mockResolvedValue({
+                listReleases: vi.fn().mockResolvedValue({
                     data: [
                         {
                             tag_name: 'v2.41.0.windows.1',
@@ -69,4 +69,3 @@ module.exports = {
             }
         }
     })
-}

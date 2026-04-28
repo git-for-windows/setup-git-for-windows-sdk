@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Setup Git for Windows' minimal SDK
-      uses: git-for-windows/setup-git-for-windows-sdk@v1
+      uses: git-for-windows/setup-git-for-windows-sdk@v2
     - name: Build
       shell: bash
       run: make
@@ -78,7 +78,7 @@ On self-hosted runners, the SDK files persist after the workflow run is done. To
 
 ## Developing _this_ Action
 
-> First, you'll need to have a reasonably modern version of `node` handy, such as Node 12.
+> First, you'll need to have a reasonably modern version of `node` handy, such as Node 24.
 
 Install the dependencies
 
@@ -97,25 +97,12 @@ Run the tests :heavy_check_mark:
 ```bash
 $ npm test
 
-> setup-git-for-windows-sdk@0.0.0 test C:\Users\me\setup-git-for-windows-sdk
-> jest
+ ✓ __tests__/main.test.ts (1)
+   ✓ skipping tests requiring network access
+ ✓ src/__tests__/git.test.ts (2)
+   ✓ git (2)
 
-PASS __tests__/main.test.ts (28.869 s)
-  √ skipping tests requiring network access (224 ms)
-
-  console.log
-    If you want to run tests that access the network, set:
-    export RUN_NETWORK_TESTS=true
-
-      at __tests__/main.test.ts:26:13
-
-PASS __tests__/downloader.test.ts (29.889 s)
-  √ can obtain build ID (9 ms)
-
-Test Suites: 2 passed, 2 total
-Tests:       2 passed, 2 total
-Snapshots:   0 total
-Time:        31.11 s
-Ran all test suites.
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
 ...
 ```
