@@ -1,8 +1,10 @@
 import * as core from '@actions/core'
-import {spawnAndWaitForExitCode, SpawnReturnArgs} from './spawn.js'
+import {spawnAndWaitForExitCode} from './spawn.js'
 import {Octokit} from '@octokit/rest'
 import {delimiter} from 'path'
 import * as fs from 'fs'
+
+/** @typedef {import('./spawn.js').SpawnReturnArgs} SpawnReturnArgs */
 
 // If present, do prefer the build agent's copy of Git
 const externalsGitDir = `${process.env.AGENT_HOMEDIRECTORY}/externals/git`
@@ -29,10 +31,12 @@ const gitExePath = `${gitRoot}/cmd/git.exe`
  */
 const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`
 
-export function getArtifactMetadata(
-  flavor: string,
-  architecture: string
-): {repo: string; artifactName: string} {
+/**
+ * @param {string} flavor
+ * @param {string} architecture
+ * @returns {{ repo: string, artifactName: string }}
+ */
+export function getArtifactMetadata(flavor, architecture) {
   const repo = {
     i686: 'git-sdk-32',
     x86_64: 'git-sdk-64',
@@ -48,12 +52,14 @@ export function getArtifactMetadata(
   return {repo, artifactName}
 }
 
-export async function clone(
-  url: string,
-  destination: string,
-  verbose: number | boolean,
-  cloneExtraOptions: string[] = []
-): Promise<void> {
+/**
+ * @param {string} url
+ * @param {string} destination
+ * @param {number | boolean} verbose
+ * @param {string[]} [cloneExtraOptions]
+ * @returns {Promise<void>}
+ */
+export async function clone(url, destination, verbose, cloneExtraOptions = []) {
   if (verbose) core.info(`Cloning ${url} to ${destination}`)
   const child = await spawnAndWaitForExitCode(
     gitExePath,
@@ -77,10 +83,12 @@ export async function clone(
   }
 }
 
-async function updateHEAD(
-  bareRepositoryPath: string,
-  headSHA: string
-): Promise<void> {
+/**
+ * @param {string} bareRepositoryPath
+ * @param {string} headSHA
+ * @returns {Promise<void>}
+ */
+async function updateHEAD(bareRepositoryPath, headSHA) {
   const child = await spawnAndWaitForExitCode(
     gitExePath,
     ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA],
@@ -95,24 +103,24 @@ async function updateHEAD(
   }
 }
 
-export async function getViaGit(
-  flavor: string,
-  architecture: string,
-  githubToken?: string
-): Promise<{
-  artifactName: string
-  id: string
-  download: (
-    outputDirectory: string,
-    verbose?: number | boolean
-  ) => Promise<void>
-}> {
+/**
+ * @param {string} flavor
+ * @param {string} architecture
+ * @param {string} [githubToken]
+ * @returns {Promise<{
+ *   artifactName: string,
+ *   id: string,
+ *   download: (outputDirectory: string, verbose?: number | boolean) => Promise<void>
+ * }>}
+ */
+export async function getViaGit(flavor, architecture, githubToken) {
   const owner = 'git-for-windows'
 
   const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
 
   const octokit = githubToken ? new Octokit({auth: githubToken}) : new Octokit()
-  let head_sha: string
+  /** @type {string} */
+  let head_sha
   if (flavor === 'minimal') {
     const info = await octokit.actions.listWorkflowRuns({
       owner,
@@ -150,9 +158,9 @@ export async function getViaGit(
     artifactName,
     id,
     download: async (
-      outputDirectory: string,
-      verbose: number | boolean = false
-    ): Promise<void> => {
+      outputDirectory,
+      verbose = false
+    ) => {
       core.startGroup(`Cloning ${repo}`)
       const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none']
       await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
@@ -161,7 +169,8 @@ export async function getViaGit(
       ])
       core.endGroup()
 
-      let child: SpawnReturnArgs
+      /** @type {SpawnReturnArgs} */
+      let child
       if (flavor === 'full') {
         core.startGroup(`Checking out ${repo}`)
         child = await spawnAndWaitForExitCode(
