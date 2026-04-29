@@ -3,16 +3,15 @@
   "version": "2.0.0",
   "private": true,
   "description": "Set up an environment to develop Git for Windows TypeScript template action",
-  "main": "lib/main.js",
+  "main": "main.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write '**/*.ts' '**/*.js' '!dist' '!lib' '!node_modules'",
-    "format-check": "prettier --check '**/*.ts' '**/*.js' '!dist' '!lib' '!node_modules'",
-    "lint": "eslint '**/*.ts' '**/*.js'",
-    "package": "ncc build --source-map",
+    "format": "prettier --write '**/*.js' '!dist' '!lib' '!node_modules'",
+    "format-check": "prettier --check '**/*.js' '!dist' '!lib' '!node_modules'",
+    "lint": "eslint '**/*.js'",
+    "package": "ncc build main.js --source-map",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.eslint.json",
-    "all": "npm run build && npm run format && npm run lint && npm run typecheck && npm run package && npm test"
+    "all": "npm run build && npm run format && npm run lint && npm run package && npm test"
   },
   "repository": {
     "type": "git",

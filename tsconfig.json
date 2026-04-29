@@ -3,16 +3,15 @@
     "target": "es2022",                       /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019' or 'ESNEXT'. */
     "module": "nodenext",                     /* Specify module code generation. */
     "moduleResolution": "nodenext",           /* Specify module resolution strategy. */
-    "outDir": "./lib",                        /* Redirect output structure to the directory. */
-    "rootDir": ".",                           /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
     "strict": true,                           /* Enable all strict type-checking options. */
     "noImplicitAny": true,                    /* Raise error on expressions and declarations with an implied 'any' type. */
     "esModuleInterop": true,                  /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "noEmit": true,
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["**/*.ts", "src/**/*.js", "main.js"],
-  "exclude": ["node_modules", "**/*.test.ts", "__tests__", "vitest.config.ts"]
+  "include": ["src/**/*.js", "main.js"],
+  "exclude": ["node_modules"]
 }
