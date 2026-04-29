@@ -77,5 +77,13 @@ export default tseslint.config(
             "no-unused-vars": "off",
             semi: "off",
         },
+    },
+    {
+        files: ["**/*.js"],
+        rules: {
+            "@typescript-eslint/explicit-function-return-type": "off",
+            "@typescript-eslint/no-require-imports": "off",
+            "@typescript-eslint/no-var-requires": "off",
+        },
     }
 );
