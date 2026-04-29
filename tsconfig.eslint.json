@@ -3,6 +3,6 @@
   "compilerOptions": {
     "skipLibCheck": true
   },
-  "include": ["**/*.ts", "**/*.mjs"],
+  "include": ["**/*.ts", "**/*.mjs", "src/**/*.js", "main.js"],
   "exclude": ["node_modules", "dist", "lib"]
 }

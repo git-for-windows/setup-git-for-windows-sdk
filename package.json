@@ -6,9 +6,9 @@
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write **/*.ts",
-    "format-check": "prettier --check **/*.ts",
-    "lint": "eslint **/*.ts",
+    "format": "prettier --write '**/*.ts' '**/*.js' '!dist' '!lib' '!node_modules'",
+    "format-check": "prettier --check '**/*.ts' '**/*.js' '!dist' '!lib' '!node_modules'",
+    "lint": "eslint '**/*.ts' '**/*.js'",
     "package": "ncc build --source-map",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.eslint.json",
