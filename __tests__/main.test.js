@@ -5,10 +5,12 @@ import * as path from 'path'
 import * as process from 'process'
 import {statSync} from 'fs'
 
-async function runAction(
-  options?: child_process.SpawnOptionsWithoutStdio
-): Promise<number> {
-  return new Promise<number>((resolve, reject) => {
+/**
+ * @param {child_process.SpawnOptionsWithoutStdio} [options]
+ * @returns {Promise<number>}
+ */
+async function runAction(options) {
+  return new Promise((resolve, reject) => {
     const nodeExePath = process.execPath
     const scriptPath = path.join(__dirname, '..', 'lib', 'main.js')
 
