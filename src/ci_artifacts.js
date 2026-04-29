@@ -4,24 +4,27 @@ import {getArtifactMetadata} from './git.js'
 import {spawn} from 'child_process'
 import * as fs from 'fs'
 
-async function sleep(milliseconds: number): Promise<void> {
-  return new Promise<void>((resolve, _reject) => {
+/**
+ * @param {number} milliseconds
+ * @returns {Promise<void>}
+ */
+async function sleep(milliseconds) {
+  return new Promise((resolve, _reject) => {
     setTimeout(resolve, milliseconds)
   })
 }
 
-export async function getViaCIArtifacts(
-  flavor: string,
-  architecture: string,
-  githubToken?: string
-): Promise<{
-  artifactName: string
-  id: string
-  download: (
-    outputDirectory: string,
-    verbose?: number | boolean
-  ) => Promise<void>
-}> {
+/**
+ * @param {string} flavor
+ * @param {string} architecture
+ * @param {string} [githubToken]
+ * @returns {Promise<{
+ *   artifactName: string,
+ *   id: string,
+ *   download: (outputDirectory: string, verbose?: number | boolean) => Promise<void>
+ * }>}
+ */
+export async function getViaCIArtifacts(flavor, architecture, githubToken) {
   const owner = 'git-for-windows'
 
   const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
@@ -33,7 +36,8 @@ export async function getViaCIArtifacts(
     updated_at: updatedAt,
     browser_download_url: url
   } = await (async () => {
-    let error: Error | undefined
+    /** @type {Error | undefined} */
+    let error
     for (const seconds of [0, 5, 10, 15, 20, 40]) {
       if (seconds) await sleep(seconds)
 
@@ -78,10 +82,10 @@ export async function getViaCIArtifacts(
     artifactName,
     id: `ci-artifacts-${updatedAt}`,
     download: async (
-      outputDirectory: string,
-      verbose: number | boolean = false
-    ): Promise<void> => {
-      return new Promise<void>((resolve, reject) => {
+      outputDirectory,
+      verbose = false
+    ) => {
+      return new Promise((resolve, reject) => {
         const curl = spawn(
           `${process.env.SYSTEMROOT}/system32/curl.exe`,
           [
