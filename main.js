@@ -23,8 +23,10 @@ const architecture = core.getInput('architecture')
  * use it too if we can. It leads to a ~25% speed increase when doing heavy IO operations.
  *
  * https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview#temporary-disk
+ *
+ * @returns {string}
  */
-function getDriveLetterPrefix(): string {
+function getDriveLetterPrefix() {
   if (fs.existsSync('D:/')) {
     core.info('Found a fast, temporary disk on this VM (D:/). Will use that.')
     return 'D:/'
@@ -33,7 +35,8 @@ function getDriveLetterPrefix(): string {
   return 'C:/'
 }
 
-async function run(): Promise<void> {
+/** @returns {Promise<void>} */
+async function run() {
   try {
     if (process.platform !== 'win32') {
       core.warning(
@@ -58,7 +61,8 @@ async function run(): Promise<void> {
       core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`
     core.setOutput('result', outputDirectory)
 
-    let useCache: boolean
+    /** @type {boolean} */
+    let useCache
     switch (core.getInput('cache')) {
       case 'true':
         useCache = true
@@ -137,7 +141,11 @@ async function run(): Promise<void> {
       mkdirp(`${outputDirectory}${path}`)
     }
 
-    const ln = (linkPath: string, target: string): void => {
+    /**
+     * @param {string} linkPath
+     * @param {string} target
+     */
+    const ln = (linkPath, target) => {
       const child = spawnSync(
         flavor === 'minimal' ? 'ln.exe' : 'usr\\bin\\ln.exe',
         ['-s', target, linkPath],
@@ -163,7 +171,8 @@ async function run(): Promise<void> {
   }
 }
 
-function cleanup(): void {
+/** @returns {void} */
+function cleanup() {
   if (core.getInput('cleanup') !== 'true') {
     core.info(
       `Won't clean up SDK files as the 'cleanup' input was not provided or doesn't equal 'true'.`
