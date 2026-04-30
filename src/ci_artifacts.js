@@ -81,10 +81,7 @@ export async function getViaCIArtifacts(flavor, architecture, githubToken) {
   return {
     artifactName,
     id: `ci-artifacts-${updatedAt}`,
-    download: async (
-      outputDirectory,
-      verbose = false
-    ) => {
+    download: async (outputDirectory, verbose = false) => {
       return new Promise((resolve, reject) => {
         const curl = spawn(
           `${process.env.SYSTEMROOT}/system32/curl.exe`,

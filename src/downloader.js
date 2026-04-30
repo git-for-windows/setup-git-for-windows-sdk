@@ -12,7 +12,10 @@ export function mkdirp(directoryPath) {
     }
     throw new Error(`${directoryPath} exists, but is not a directory`)
   } catch (e) {
-    if (!(e instanceof Object) || /** @type {{code: string}} */ (e).code !== 'ENOENT') {
+    if (
+      !(e instanceof Object) ||
+      /** @type {{code: string}} */ (e).code !== 'ENOENT'
+    ) {
       throw e
     }
   }

@@ -157,10 +157,7 @@ export async function getViaGit(flavor, architecture, githubToken) {
   return {
     artifactName,
     id,
-    download: async (
-      outputDirectory,
-      verbose = false
-    ) => {
+    download: async (outputDirectory, verbose = false) => {
       core.startGroup(`Cloning ${repo}`)
       const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none']
       await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
