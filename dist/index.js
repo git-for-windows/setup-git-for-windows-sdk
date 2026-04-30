@@ -42209,22 +42209,29 @@ function getIDToken(aud) {
  */
 
 //# sourceMappingURL=core.js.map
-;// CONCATENATED MODULE: ./lib/src/downloader.js
+;// CONCATENATED MODULE: ./src/downloader.js
 
+
+/**
+ * @param {string} directoryPath
+ * @returns {void}
+ */
 function mkdirp(directoryPath) {
-    try {
-        const stat = external_fs_namespaceObject.statSync(directoryPath);
-        if (stat.isDirectory()) {
-            return;
-        }
-        throw new Error(`${directoryPath} exists, but is not a directory`);
+  try {
+    const stat = external_fs_namespaceObject.statSync(directoryPath)
+    if (stat.isDirectory()) {
+      return
     }
-    catch (e) {
-        if (!(e instanceof Object) || e.code !== 'ENOENT') {
-            throw e;
-        }
+    throw new Error(`${directoryPath} exists, but is not a directory`)
+  } catch (e) {
+    if (
+      !(e instanceof Object) ||
+      /** @type {{code: string}} */ (e).code !== 'ENOENT'
+    ) {
+      throw e
     }
-    external_fs_namespaceObject.mkdirSync(directoryPath, { recursive: true });
+  }
+  external_fs_namespaceObject.mkdirSync(directoryPath, {recursive: true})
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@actions/glob/lib/internal-glob-options-helper.js
@@ -88671,24 +88678,35 @@ function saveCacheV2(paths_1, key_1, options_1) {
 //# sourceMappingURL=cache.js.map
 ;// CONCATENATED MODULE: external "process"
 const external_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("process");
-;// CONCATENATED MODULE: ./lib/src/spawn.js
+;// CONCATENATED MODULE: ./src/spawn.js
+
+
+/**
+ * @typedef {{ exitCode: number | null }} SpawnReturnArgs
+ */
 
 /**
  * Simple wrapper around NodeJS's "child_process.spawn" function.
  * Since we only use the exit code, we only expose that.
+ *
+ * @param {string} command
+ * @param {readonly string[]} args
+ * @param {import('child_process').SpawnOptions} options
+ * @returns {Promise<SpawnReturnArgs>}
  */
 async function spawnAndWaitForExitCode(command, args, options) {
-    const child = (0,external_child_process_namespaceObject.spawn)(command, args, {
-        ...options,
-        // 'inherit' means that the child process will use the same stdio/stderr as the parent process
-        stdio: [undefined, 'inherit', 'inherit']
-    });
-    return new Promise((resolve, reject) => {
-        child.on('error', reject);
-        child.on('close', code => {
-            resolve({ exitCode: code });
-        });
-    });
+  const child = (0,external_child_process_namespaceObject.spawn)(command, args, {
+    ...options,
+    // 'inherit' means that the child process will use the same stdio/stderr as the parent process
+    stdio: [undefined, 'inherit', 'inherit']
+  })
+
+  return new Promise((resolve, reject) => {
+    child.on('error', reject)
+    child.on('close', code => {
+      resolve({exitCode: code})
+    })
+  })
 }
 
 ;// CONCATENATED MODULE: ./node_modules/universal-user-agent/index.js
@@ -92892,21 +92910,29 @@ const dist_src_Octokit = Octokit.plugin(requestLog, legacyRestEndpointMethods, p
 );
 
 
-;// CONCATENATED MODULE: ./lib/src/git.js
+;// CONCATENATED MODULE: ./src/git.js
 
 
 
 
+
+
+/** @typedef {import('./spawn.js').SpawnReturnArgs} SpawnReturnArgs */
 
 // If present, do prefer the build agent's copy of Git
-const externalsGitDir = `${process.env.AGENT_HOMEDIRECTORY}/externals/git`;
-const gitForWindowsRoot = 'C:/Program Files/Git';
+const externalsGitDir = `${process.env.AGENT_HOMEDIRECTORY}/externals/git`
+const gitForWindowsRoot = 'C:/Program Files/Git'
 const gitRoot = external_fs_namespaceObject.existsSync(externalsGitDir)
-    ? externalsGitDir
-    : gitForWindowsRoot;
-const gitForWindowsBinPaths = ['clangarm64', 'mingw64', 'mingw32', 'usr'].map(p => `${gitRoot}/${p}/bin`);
-const gitForWindowsUsrBinPath = gitForWindowsBinPaths[gitForWindowsBinPaths.length - 1];
-const gitExePath = `${gitRoot}/cmd/git.exe`;
+  ? externalsGitDir
+  : gitForWindowsRoot
+
+const gitForWindowsBinPaths = ['clangarm64', 'mingw64', 'mingw32', 'usr'].map(
+  p => `${gitRoot}/${p}/bin`
+)
+const gitForWindowsUsrBinPath =
+  gitForWindowsBinPaths[gitForWindowsBinPaths.length - 1]
+const gitExePath = `${gitRoot}/cmd/git.exe`
+
 /*
  * It looks a bit ridiculous to use 56 workers on a build agent that has only
  * a two-core CPU, yet manual testing revealed that 64 workers would be _even
@@ -92916,221 +92942,326 @@ const gitExePath = `${gitRoot}/cmd/git.exe`;
  * Let's stick with 56, which should avoid running out of resources, but still
  * is much faster than, say, using only 2 workers.
  */
-const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`;
+const GIT_CONFIG_PARAMETERS = `'checkout.workers=56'`
+
+/**
+ * @param {string} flavor
+ * @param {string} architecture
+ * @returns {{ repo: string, artifactName: string }}
+ */
 function getArtifactMetadata(flavor, architecture) {
-    const repo = {
-        i686: 'git-sdk-32',
-        x86_64: 'git-sdk-64',
-        aarch64: 'git-sdk-arm64'
-    }[architecture];
-    if (repo === undefined) {
-        throw new Error(`Invalid architecture ${architecture} specified`);
-    }
-    const artifactName = `${repo}-${flavor}`;
-    return { repo, artifactName };
+  const repo = {
+    i686: 'git-sdk-32',
+    x86_64: 'git-sdk-64',
+    aarch64: 'git-sdk-arm64'
+  }[architecture]
+
+  if (repo === undefined) {
+    throw new Error(`Invalid architecture ${architecture} specified`)
+  }
+
+  const artifactName = `${repo}-${flavor}`
+
+  return {repo, artifactName}
 }
+
+/**
+ * @param {string} url
+ * @param {string} destination
+ * @param {number | boolean} verbose
+ * @param {string[]} [cloneExtraOptions]
+ * @returns {Promise<void>}
+ */
 async function clone(url, destination, verbose, cloneExtraOptions = []) {
-    if (verbose)
-        info(`Cloning ${url} to ${destination}`);
-    const child = await spawnAndWaitForExitCode(gitExePath, [
-        'clone',
-        '--depth=1',
-        '--single-branch',
-        '--branch=main',
-        ...cloneExtraOptions,
-        url,
-        destination
-    ], {
-        env: {
-            GIT_CONFIG_PARAMETERS
-        }
-    });
-    if (child.exitCode !== 0) {
-        throw new Error(`git clone: exited with code ${child.exitCode}`);
+  if (verbose) info(`Cloning ${url} to ${destination}`)
+  const child = await spawnAndWaitForExitCode(
+    gitExePath,
+    [
+      'clone',
+      '--depth=1',
+      '--single-branch',
+      '--branch=main',
+      ...cloneExtraOptions,
+      url,
+      destination
+    ],
+    {
+      env: {
+        GIT_CONFIG_PARAMETERS
+      }
     }
+  )
+  if (child.exitCode !== 0) {
+    throw new Error(`git clone: exited with code ${child.exitCode}`)
+  }
 }
+
+/**
+ * @param {string} bareRepositoryPath
+ * @param {string} headSHA
+ * @returns {Promise<void>}
+ */
 async function updateHEAD(bareRepositoryPath, headSHA) {
-    const child = await spawnAndWaitForExitCode(gitExePath, ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA], {
-        env: {
-            GIT_CONFIG_PARAMETERS
-        }
-    });
-    if (child.exitCode !== 0) {
-        throw new Error(`git: exited with code ${child.exitCode}`);
+  const child = await spawnAndWaitForExitCode(
+    gitExePath,
+    ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA],
+    {
+      env: {
+        GIT_CONFIG_PARAMETERS
+      }
     }
+  )
+  if (child.exitCode !== 0) {
+    throw new Error(`git: exited with code ${child.exitCode}`)
+  }
 }
+
+/**
+ * @param {string} flavor
+ * @param {string} architecture
+ * @param {string} [githubToken]
+ * @returns {Promise<{
+ *   artifactName: string,
+ *   id: string,
+ *   download: (outputDirectory: string, verbose?: number | boolean) => Promise<void>
+ * }>}
+ */
 async function getViaGit(flavor, architecture, githubToken) {
-    const owner = 'git-for-windows';
-    const { repo, artifactName } = getArtifactMetadata(flavor, architecture);
-    const octokit = githubToken ? new dist_src_Octokit({ auth: githubToken }) : new dist_src_Octokit();
-    let head_sha;
-    if (flavor === 'minimal') {
-        const info = await octokit.actions.listWorkflowRuns({
-            owner,
-            repo,
-            workflow_id: 938271,
-            status: 'success',
-            branch: 'main',
-            event: 'push',
-            per_page: 1
-        });
-        head_sha = info.data.workflow_runs[0].head_sha;
-        /*
-         * There was a GCC upgrade to v14.1 that broke the build with `DEVELOPER=1`,
-         * and `ci-artifacts` was not updated to test-build with `DEVELOPER=1` (this
-         * was fixed in https://github.com/git-for-windows/git-sdk-64/pull/83).
-         *
-         * Work around that by forcing the incorrectly-passing revision back to the
-         * last one before that GCC upgrade.
-         */
-        if (head_sha === '5f6ba092f690c0bbf84c7201be97db59cdaeb891') {
-            head_sha = 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71';
-        }
+  const owner = 'git-for-windows'
+
+  const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
+
+  const octokit = githubToken ? new dist_src_Octokit({auth: githubToken}) : new dist_src_Octokit()
+  /** @type {string} */
+  let head_sha
+  if (flavor === 'minimal') {
+    const info = await octokit.actions.listWorkflowRuns({
+      owner,
+      repo,
+      workflow_id: 938271,
+      status: 'success',
+      branch: 'main',
+      event: 'push',
+      per_page: 1
+    })
+    head_sha = info.data.workflow_runs[0].head_sha
+    /*
+     * There was a GCC upgrade to v14.1 that broke the build with `DEVELOPER=1`,
+     * and `ci-artifacts` was not updated to test-build with `DEVELOPER=1` (this
+     * was fixed in https://github.com/git-for-windows/git-sdk-64/pull/83).
+     *
+     * Work around that by forcing the incorrectly-passing revision back to the
+     * last one before that GCC upgrade.
+     */
+    if (head_sha === '5f6ba092f690c0bbf84c7201be97db59cdaeb891') {
+      head_sha = 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71'
     }
-    else {
-        const info = await octokit.repos.getBranch({
-            owner,
-            repo,
-            branch: 'main'
-        });
-        head_sha = info.data.commit.sha;
+  } else {
+    const info = await octokit.repos.getBranch({
+      owner,
+      repo,
+      branch: 'main'
+    })
+    head_sha = info.data.commit.sha
+  }
+  const id = `${artifactName}-${head_sha}${head_sha === 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71' ? '-2' : ''}`
+  info(`Got commit ${head_sha} for ${repo}`)
+
+  return {
+    artifactName,
+    id,
+    download: async (outputDirectory, verbose = false) => {
+      startGroup(`Cloning ${repo}`)
+      const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none']
+      await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
+        '--bare',
+        ...partialCloneArg
+      ])
+      endGroup()
+
+      /** @type {SpawnReturnArgs} */
+      let child
+      if (flavor === 'full') {
+        startGroup(`Checking out ${repo}`)
+        child = await spawnAndWaitForExitCode(
+          gitExePath,
+          [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha],
+          {
+            env: {
+              GIT_CONFIG_PARAMETERS
+            }
+          }
+        )
+      } else {
+        await updateHEAD('.tmp', head_sha)
+        startGroup('Cloning build-extra')
+        await clone(
+          `https://github.com/${owner}/build-extra`,
+          '.tmp/build-extra',
+          verbose
+        )
+        endGroup()
+
+        startGroup(`Creating ${flavor} artifact`)
+        const traceArg = verbose ? ['-x'] : []
+        child = await spawnAndWaitForExitCode(
+          `${gitForWindowsUsrBinPath}/bash.exe`,
+          [
+            ...traceArg,
+            '.tmp/build-extra/please.sh',
+            'create-sdk-artifact',
+            `--architecture=${architecture}`,
+            `--out=${outputDirectory}`,
+            '--sdk=.tmp',
+            flavor
+          ],
+          {
+            env: {
+              GIT_CONFIG_PARAMETERS,
+              COMSPEC:
+                process.env.COMSPEC ||
+                `${process.env.WINDIR}\\system32\\cmd.exe`,
+              LC_CTYPE: 'C.UTF-8',
+              CHERE_INVOKING: '1',
+              MSYSTEM: 'MINGW64',
+              PATH: `${gitForWindowsBinPaths.join(external_path_.delimiter)}${external_path_.delimiter}${process.env.PATH}`
+            }
+          }
+        )
+      }
+      endGroup()
+      if (child.exitCode === 0) {
+        external_fs_namespaceObject.rmSync('.tmp', {recursive: true})
+      } else {
+        throw new Error(`process exited with code ${child.exitCode}`)
+      }
     }
-    const id = `${artifactName}-${head_sha}${head_sha === 'e37e3f44c1934f0f263dabbf4ed50a3cfb6eaf71' ? '-2' : ''}`;
-    info(`Got commit ${head_sha} for ${repo}`);
-    return {
-        artifactName,
-        id,
-        download: async (outputDirectory, verbose = false) => {
-            startGroup(`Cloning ${repo}`);
-            const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none'];
-            await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
-                '--bare',
-                ...partialCloneArg
-            ]);
-            endGroup();
-            let child;
-            if (flavor === 'full') {
-                startGroup(`Checking out ${repo}`);
-                child = await spawnAndWaitForExitCode(gitExePath, [`--git-dir=.tmp`, 'worktree', 'add', outputDirectory, head_sha], {
-                    env: {
-                        GIT_CONFIG_PARAMETERS
-                    }
-                });
-            }
-            else {
-                await updateHEAD('.tmp', head_sha);
-                startGroup('Cloning build-extra');
-                await clone(`https://github.com/${owner}/build-extra`, '.tmp/build-extra', verbose);
-                endGroup();
-                startGroup(`Creating ${flavor} artifact`);
-                const traceArg = verbose ? ['-x'] : [];
-                child = await spawnAndWaitForExitCode(`${gitForWindowsUsrBinPath}/bash.exe`, [
-                    ...traceArg,
-                    '.tmp/build-extra/please.sh',
-                    'create-sdk-artifact',
-                    `--architecture=${architecture}`,
-                    `--out=${outputDirectory}`,
-                    '--sdk=.tmp',
-                    flavor
-                ], {
-                    env: {
-                        GIT_CONFIG_PARAMETERS,
-                        COMSPEC: process.env.COMSPEC ||
-                            `${process.env.WINDIR}\\system32\\cmd.exe`,
-                        LC_CTYPE: 'C.UTF-8',
-                        CHERE_INVOKING: '1',
-                        MSYSTEM: 'MINGW64',
-                        PATH: `${gitForWindowsBinPaths.join(external_path_.delimiter)}${external_path_.delimiter}${process.env.PATH}`
-                    }
-                });
-            }
-            endGroup();
-            if (child.exitCode === 0) {
-                external_fs_namespaceObject.rmSync('.tmp', { recursive: true });
-            }
-            else {
-                throw new Error(`process exited with code ${child.exitCode}`);
-            }
-        }
-    };
+  }
 }
 
-;// CONCATENATED MODULE: ./lib/src/ci_artifacts.js
+;// CONCATENATED MODULE: ./src/ci_artifacts.js
 
 
 
 
 
+
+/**
+ * @param {number} milliseconds
+ * @returns {Promise<void>}
+ */
 async function ci_artifacts_sleep(milliseconds) {
-    return new Promise((resolve, _reject) => {
-        setTimeout(resolve, milliseconds);
-    });
+  return new Promise((resolve, _reject) => {
+    setTimeout(resolve, milliseconds)
+  })
 }
+
+/**
+ * @param {string} flavor
+ * @param {string} architecture
+ * @param {string} [githubToken]
+ * @returns {Promise<{
+ *   artifactName: string,
+ *   id: string,
+ *   download: (outputDirectory: string, verbose?: number | boolean) => Promise<void>
+ * }>}
+ */
 async function getViaCIArtifacts(flavor, architecture, githubToken) {
-    const owner = 'git-for-windows';
-    const { repo, artifactName } = getArtifactMetadata(flavor, architecture);
-    const octokit = githubToken ? new dist_src_Octokit({ auth: githubToken }) : new dist_src_Octokit();
-    const { name, updated_at: updatedAt, browser_download_url: url } = await (async () => {
-        let error;
-        for (const seconds of [0, 5, 10, 15, 20, 40]) {
-            if (seconds)
-                await ci_artifacts_sleep(seconds);
-            const ciArtifactsResponse = await octokit.repos.getReleaseByTag({
-                owner,
-                repo,
-                tag: 'ci-artifacts'
-            });
-            if (ciArtifactsResponse.status !== 200) {
-                error = new Error(`Failed to get ci-artifacts release from the ${owner}/${repo} repo: ${ciArtifactsResponse.status}`);
-                continue;
-            }
-            info(`Found ci-artifacts release: ${ciArtifactsResponse.data.html_url}`);
-            const assetName = flavor === 'build-installers'
-                ? `git-sdk-${architecture}-build-installers.tar.zst`
-                : `git-sdk-${architecture}-minimal.tar.gz`;
-            const artifact = ciArtifactsResponse.data.assets.find(asset => asset.name === assetName);
-            if (!artifact) {
-                error = new Error(`Failed to find ${assetName} in the ci-artifacts release of the ${owner}/${repo} repo`);
-                continue;
-            }
-            return artifact;
-        }
-        throw error;
-    })();
-    info(`Found ${name} at ${url}`);
-    return {
-        artifactName,
-        id: `ci-artifacts-${updatedAt}`,
-        download: async (outputDirectory, verbose = false) => {
-            return new Promise((resolve, reject) => {
-                const curl = (0,external_child_process_namespaceObject.spawn)(`${process.env.SYSTEMROOT}/system32/curl.exe`, [
-                    ...(githubToken
-                        ? ['-H', `Authorization: Bearer ${githubToken}`]
-                        : []),
-                    '-H',
-                    'Accept: application/octet-stream',
-                    `-${verbose === true ? '' : 's'}fL`,
-                    url
-                ], {
-                    stdio: ['ignore', 'pipe', process.stderr]
-                });
-                curl.on('error', error => reject(error));
-                external_fs_namespaceObject.mkdirSync(outputDirectory, { recursive: true });
-                const tar = (0,external_child_process_namespaceObject.spawn)(`${process.env.SYSTEMROOT}/system32/tar.exe`, ['-C', outputDirectory, `-x${verbose === true ? 'v' : ''}f`, '-'], { stdio: ['pipe', process.stdout, process.stderr] });
-                tar.on('error', error => reject(error));
-                tar.on('close', code => {
-                    if (code === 0)
-                        resolve();
-                    else
-                        reject(new Error(`tar exited with code ${code}`));
-                });
-                curl.stdout.pipe(tar.stdin);
-            });
-        }
-    };
+  const owner = 'git-for-windows'
+
+  const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
+
+  const octokit = githubToken ? new dist_src_Octokit({auth: githubToken}) : new dist_src_Octokit()
+
+  const {
+    name,
+    updated_at: updatedAt,
+    browser_download_url: url
+  } = await (async () => {
+    /** @type {Error | undefined} */
+    let error
+    for (const seconds of [0, 5, 10, 15, 20, 40]) {
+      if (seconds) await ci_artifacts_sleep(seconds)
+
+      const ciArtifactsResponse = await octokit.repos.getReleaseByTag({
+        owner,
+        repo,
+        tag: 'ci-artifacts'
+      })
+
+      if (ciArtifactsResponse.status !== 200) {
+        error = new Error(
+          `Failed to get ci-artifacts release from the ${owner}/${repo} repo: ${ciArtifactsResponse.status}`
+        )
+        continue
+      }
+
+      info(
+        `Found ci-artifacts release: ${ciArtifactsResponse.data.html_url}`
+      )
+      const assetName =
+        flavor === 'build-installers'
+          ? `git-sdk-${architecture}-build-installers.tar.zst`
+          : `git-sdk-${architecture}-minimal.tar.gz`
+      const artifact = ciArtifactsResponse.data.assets.find(
+        asset => asset.name === assetName
+      )
+
+      if (!artifact) {
+        error = new Error(
+          `Failed to find ${assetName} in the ci-artifacts release of the ${owner}/${repo} repo`
+        )
+        continue
+      }
+
+      return artifact
+    }
+    throw error
+  })()
+  info(`Found ${name} at ${url}`)
+
+  return {
+    artifactName,
+    id: `ci-artifacts-${updatedAt}`,
+    download: async (outputDirectory, verbose = false) => {
+      return new Promise((resolve, reject) => {
+        const curl = (0,external_child_process_namespaceObject.spawn)(
+          `${process.env.SYSTEMROOT}/system32/curl.exe`,
+          [
+            ...(githubToken
+              ? ['-H', `Authorization: Bearer ${githubToken}`]
+              : []),
+            '-H',
+            'Accept: application/octet-stream',
+            `-${verbose === true ? '' : 's'}fL`,
+            url
+          ],
+          {
+            stdio: ['ignore', 'pipe', process.stderr]
+          }
+        )
+        curl.on('error', error => reject(error))
+
+        external_fs_namespaceObject.mkdirSync(outputDirectory, {recursive: true})
+
+        const tar = (0,external_child_process_namespaceObject.spawn)(
+          `${process.env.SYSTEMROOT}/system32/tar.exe`,
+          ['-C', outputDirectory, `-x${verbose === true ? 'v' : ''}f`, '-'],
+          {stdio: ['pipe', process.stdout, process.stderr]}
+        )
+        tar.on('error', error => reject(error))
+        tar.on('close', code => {
+          if (code === 0) resolve()
+          else reject(new Error(`tar exited with code ${code}`))
+        })
+
+        curl.stdout.pipe(tar.stdin)
+      })
+    }
+  }
 }
 
-;// CONCATENATED MODULE: ./lib/main.js
+;// CONCATENATED MODULE: ./main.js
 
 
 
@@ -93140,8 +93271,10 @@ async function getViaCIArtifacts(flavor, architecture, githubToken) {
 
 
 
-const flavor = getInput('flavor');
-const architecture = getInput('architecture');
+
+const flavor = getInput('flavor')
+const architecture = getInput('architecture')
+
 /**
  * Some Azure VM types have a temporary disk which is local to the VM and therefore provides
  * _much_ faster disk IO than the OS Disk (or any other attached disk).
@@ -93150,163 +93283,216 @@ const architecture = getInput('architecture');
  * use it too if we can. It leads to a ~25% speed increase when doing heavy IO operations.
  *
  * https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview#temporary-disk
+ *
+ * @returns {string}
  */
 function getDriveLetterPrefix() {
-    if (external_fs_namespaceObject.existsSync('D:/')) {
-        info('Found a fast, temporary disk on this VM (D:/). Will use that.');
-        return 'D:/';
-    }
-    return 'C:/';
+  if (external_fs_namespaceObject.existsSync('D:/')) {
+    info('Found a fast, temporary disk on this VM (D:/). Will use that.')
+    return 'D:/'
+  }
+
+  return 'C:/'
 }
+
+/** @returns {Promise<void>} */
 async function run() {
+  try {
+    if (external_process_namespaceObject.platform !== 'win32') {
+      warning(
+        `Skipping this Action because it only works on Windows, not on ${external_process_namespaceObject.platform}`
+      )
+      return
+    }
+
+    const githubToken = getInput('github-token')
+    const verbose = getInput('verbose')
+    const msysMode = getInput('msys') === 'true'
+
+    // Windows Server 2025 / Windows 11 24H2 (build 26100+) ships a tar.exe
+    // that handles Zstandard natively; older versions do not.
+    const canExtractZstd = parseInt(external_os_.release().split('.')[2]) >= 26100
+
+    const {artifactName, download, id} =
+      flavor === 'minimal' || (flavor === 'build-installers' && canExtractZstd)
+        ? await getViaCIArtifacts(flavor, architecture, githubToken)
+        : await getViaGit(flavor, architecture, githubToken)
+    const outputDirectory =
+      getInput('path') || `${getDriveLetterPrefix()}${artifactName}`
+    setOutput('result', outputDirectory)
+
+    /** @type {boolean} */
+    let useCache
+    switch (getInput('cache')) {
+      case 'true':
+        useCache = true
+        break
+      case 'auto':
+        useCache = !['full', 'minimal'].includes(flavor)
+        break
+      default:
+        useCache = false
+    }
+
+    let needToDownload = true
     try {
-        if (external_process_namespaceObject.platform !== 'win32') {
-            warning(`Skipping this Action because it only works on Windows, not on ${external_process_namespaceObject.platform}`);
-            return;
-        }
-        const githubToken = getInput('github-token');
-        const verbose = getInput('verbose');
-        const msysMode = getInput('msys') === 'true';
-        // Windows Server 2025 / Windows 11 24H2 (build 26100+) ships a tar.exe
-        // that handles Zstandard natively; older versions do not.
-        const canExtractZstd = parseInt(external_os_.release().split('.')[2]) >= 26100;
-        const { artifactName, download, id } = flavor === 'minimal' || (flavor === 'build-installers' && canExtractZstd)
-            ? await getViaCIArtifacts(flavor, architecture, githubToken)
-            : await getViaGit(flavor, architecture, githubToken);
-        const outputDirectory = getInput('path') || `${getDriveLetterPrefix()}${artifactName}`;
-        setOutput('result', outputDirectory);
-        let useCache;
-        switch (getInput('cache')) {
-            case 'true':
-                useCache = true;
-                break;
-            case 'auto':
-                useCache = !['full', 'minimal'].includes(flavor);
-                break;
-            default:
-                useCache = false;
-        }
-        let needToDownload = true;
-        try {
-            if (useCache && (await restoreCache([outputDirectory], id))) {
-                info(`Cached ${id} was successfully restored`);
-                needToDownload = false;
-            }
-        }
-        catch (e) {
-            warning(`Cannot use @actions/cache (${e})`);
-            useCache = false;
-        }
-        if (needToDownload) {
-            info(`Downloading ${artifactName}`);
-            await download(outputDirectory, verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true');
-            try {
-                if (useCache && !(await cache_saveCache([outputDirectory], id))) {
-                    warning(`Failed to cache ${id}`);
-                }
-            }
-            catch (e) {
-                warning(`Failed to cache ${id}: ${e instanceof Error ? e.message : e}`);
-            }
-        }
-        const mingw = {
-            i686: 'MINGW32',
-            x86_64: 'MINGW64',
-            aarch64: 'CLANGARM64'
-        }[architecture];
-        if (mingw === undefined) {
-            setFailed(`Invalid architecture ${architecture} specified`);
-            return;
-        }
-        const msystem = msysMode ? 'MSYS' : mingw;
-        const binPaths = [
-            // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
-            '/usr/bin/core_perl',
-            '/usr/bin',
-            `/${mingw.toLocaleLowerCase()}/bin`
-        ];
-        for (const binPath of msysMode ? binPaths.reverse() : binPaths) {
-            addPath(`${outputDirectory}${binPath}`);
-        }
-        exportVariable('MSYSTEM', msystem);
-        if (!("" in external_process_namespaceObject.env) &&
-            !("" in external_process_namespaceObject.env) &&
-            !("" in external_process_namespaceObject.env)) {
-            exportVariable('LC_CTYPE', 'C.UTF-8');
-        }
-        // ensure that /dev/fd/*, /dev/mqueue and friends exist
-        for (const path of ['/dev/mqueue', '/dev/shm']) {
-            mkdirp(`${outputDirectory}${path}`);
-        }
-        const ln = (linkPath, target) => {
-            const child = (0,external_child_process_namespaceObject.spawnSync)(flavor === 'minimal' ? 'ln.exe' : 'usr\\bin\\ln.exe', ['-s', target, linkPath], {
-                cwd: outputDirectory,
-                env: {
-                    MSYS: 'winsymlinks:sys'
-                }
-            });
-            if (child.error)
-                throw child.error;
-        };
-        for (const [linkPath, target] of Object.entries({
-            fd: 'fd',
-            stdin: 'fd/0',
-            stdout: 'fd/1',
-            stderr: 'fd/2'
-        })) {
-            ln(`/dev/${linkPath}`, `/proc/self/${target}`);
-        }
+      if (useCache && (await restoreCache([outputDirectory], id))) {
+        info(`Cached ${id} was successfully restored`)
+        needToDownload = false
+      }
+    } catch (e) {
+      warning(`Cannot use @actions/cache (${e})`)
+      useCache = false
     }
-    catch (error) {
-        setFailed(error instanceof Error ? error.message : `${error}`);
+
+    if (needToDownload) {
+      info(`Downloading ${artifactName}`)
+      await download(
+        outputDirectory,
+        verbose.match(/^\d+$/) ? parseInt(verbose) : verbose === 'true'
+      )
+
+      try {
+        if (useCache && !(await cache_saveCache([outputDirectory], id))) {
+          warning(`Failed to cache ${id}`)
+        }
+      } catch (e) {
+        warning(
+          `Failed to cache ${id}: ${e instanceof Error ? e.message : e}`
+        )
+      }
     }
-}
-function cleanup() {
-    if (getInput('cleanup') !== 'true') {
-        info(`Won't clean up SDK files as the 'cleanup' input was not provided or doesn't equal 'true'.`);
-        return;
+
+    const mingw = {
+      i686: 'MINGW32',
+      x86_64: 'MINGW64',
+      aarch64: 'CLANGARM64'
+    }[architecture]
+
+    if (mingw === undefined) {
+      setFailed(`Invalid architecture ${architecture} specified`)
+      return
     }
-    const outputDirectory = getInput('path') ||
-        `${getDriveLetterPrefix()}${getArtifactMetadata(flavor, architecture).artifactName}`;
+
+    const msystem = msysMode ? 'MSYS' : mingw
+
+    const binPaths = [
+      // Set up PATH so that Git for Windows' SDK's `bash.exe`, `prove` and `gcc` are found
+      '/usr/bin/core_perl',
+      '/usr/bin',
+      `/${mingw.toLocaleLowerCase()}/bin`
+    ]
+
+    for (const binPath of msysMode ? binPaths.reverse() : binPaths) {
+      addPath(`${outputDirectory}${binPath}`)
+    }
+
+    exportVariable('MSYSTEM', msystem)
+    if (
+      !("" in external_process_namespaceObject.env) &&
+      !("" in external_process_namespaceObject.env) &&
+      !("" in external_process_namespaceObject.env)
+    ) {
+      exportVariable('LC_CTYPE', 'C.UTF-8')
+    }
+
+    // ensure that /dev/fd/*, /dev/mqueue and friends exist
+    for (const path of ['/dev/mqueue', '/dev/shm']) {
+      mkdirp(`${outputDirectory}${path}`)
+    }
+
     /**
-     * Shelling out to `rm -rf` is more than twice as fast as Node's `fs.rmSync` method.
-     * Let's use it if it's available, and otherwise fall back to `fs.rmSync`.
+     * @param {string} linkPath
+     * @param {string} target
      */
-    const cleanupMethod = external_fs_namespaceObject.existsSync(`${gitForWindowsUsrBinPath}/bash.exe`)
-        ? 'rm -rf'
-        : 'node';
-    info(`Cleaning up ${outputDirectory} using the "${cleanupMethod}" method...`);
-    if (cleanupMethod === 'rm -rf') {
-        const child = (0,external_child_process_namespaceObject.spawnSync)(`${gitForWindowsUsrBinPath}/bash.exe`, ['-c', `rm -rf "${outputDirectory}"`], {
-            encoding: 'utf-8',
-            env: { PATH: '/usr/bin' }
-        });
-        if (child.error)
-            throw child.error;
-        if (child.stderr)
-            core_error(child.stderr);
+    const ln = (linkPath, target) => {
+      const child = (0,external_child_process_namespaceObject.spawnSync)(
+        flavor === 'minimal' ? 'ln.exe' : 'usr\\bin\\ln.exe',
+        ['-s', target, linkPath],
+        {
+          cwd: outputDirectory,
+          env: {
+            MSYS: 'winsymlinks:sys'
+          }
+        }
+      )
+      if (child.error) throw child.error
     }
-    else {
-        external_fs_namespaceObject.rmSync(outputDirectory, { recursive: true, force: true });
+    for (const [linkPath, target] of Object.entries({
+      fd: 'fd',
+      stdin: 'fd/0',
+      stdout: 'fd/1',
+      stderr: 'fd/2'
+    })) {
+      ln(`/dev/${linkPath}`, `/proc/self/${target}`)
     }
-    info(`Finished cleaning up ${outputDirectory}.`);
+  } catch (error) {
+    setFailed(error instanceof Error ? error.message : `${error}`)
+  }
 }
+
+/** @returns {void} */
+function cleanup() {
+  if (getInput('cleanup') !== 'true') {
+    info(
+      `Won't clean up SDK files as the 'cleanup' input was not provided or doesn't equal 'true'.`
+    )
+    return
+  }
+
+  const outputDirectory =
+    getInput('path') ||
+    `${getDriveLetterPrefix()}${
+      getArtifactMetadata(flavor, architecture).artifactName
+    }`
+
+  /**
+   * Shelling out to `rm -rf` is more than twice as fast as Node's `fs.rmSync` method.
+   * Let's use it if it's available, and otherwise fall back to `fs.rmSync`.
+   */
+  const cleanupMethod = external_fs_namespaceObject.existsSync(`${gitForWindowsUsrBinPath}/bash.exe`)
+    ? 'rm -rf'
+    : 'node'
+
+  info(
+    `Cleaning up ${outputDirectory} using the "${cleanupMethod}" method...`
+  )
+
+  if (cleanupMethod === 'rm -rf') {
+    const child = (0,external_child_process_namespaceObject.spawnSync)(
+      `${gitForWindowsUsrBinPath}/bash.exe`,
+      ['-c', `rm -rf "${outputDirectory}"`],
+      {
+        encoding: 'utf-8',
+        env: {PATH: '/usr/bin'}
+      }
+    )
+
+    if (child.error) throw child.error
+    if (child.stderr) core_error(child.stderr)
+  } else {
+    external_fs_namespaceObject.rmSync(outputDirectory, {recursive: true, force: true})
+  }
+
+  info(`Finished cleaning up ${outputDirectory}.`)
+}
+
 /**
  * Indicates whether the POST action is running
  */
-const isPost = !!getState('isPost');
+const isPost = !!getState('isPost')
+
 if (!isPost) {
-    run();
-    /*
-     * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
-     * This is necessary since we don't have a separate entry point.
-     * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
-     */
-    saveState('isPost', 'true');
-}
-else {
-    // If the POST action is running, we cleanup our artifacts
-    cleanup();
+  run()
+  /*
+   * Publish a variable so that when the POST action runs, it can determine it should run the cleanup logic.
+   * This is necessary since we don't have a separate entry point.
+   * Inspired by https://github.com/actions/checkout/blob/v3.1.0/src/state-helper.ts#L56-L60
+   */
+  saveState('isPost', 'true')
+} else {
+  // If the POST action is running, we cleanup our artifacts
+  cleanup()
 }
 
 var __webpack_exports__isPost = __webpack_exports__.t;
