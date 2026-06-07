@@ -15,6 +15,13 @@ jobs:
             architecture: i686
           - flavor: makepkg-git
             architecture: i686
+        # `ucrt64` is wired up end-to-end only for `flavor: full`; the
+        # subset flavors depend on follow-up work in `build-extra` and
+        # the `ci-artifacts` pipeline of `git-sdk-64`. Add the one
+        # combination we can meaningfully exercise.
+        include:
+          - flavor: full
+            architecture: ucrt64
     steps:
       - uses: actions/checkout@v6
       - name: run in-place
