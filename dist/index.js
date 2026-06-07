@@ -92921,22 +92921,26 @@ function getArtifactMetadata(flavor, architecture) {
     const repo = {
         i686: 'git-sdk-32',
         x86_64: 'git-sdk-64',
-        aarch64: 'git-sdk-arm64'
+        aarch64: 'git-sdk-arm64',
+        ucrt64: 'git-sdk-64'
     }[architecture];
     if (repo === undefined) {
         throw new Error(`Invalid architecture ${architecture} specified`);
     }
-    const artifactName = `${repo}-${flavor}`;
+    // The `ucrt64` axis shares its underlying repository with `x86_64`,
+    // so the artifact name must encode the architecture to keep caches
+    // and on-disk output directories distinct from the MINGW64 variant.
+    const artifactName = architecture === 'ucrt64' ? `git-sdk-ucrt64-${flavor}` : `${repo}-${flavor}`;
     return { repo, artifactName };
 }
-async function clone(url, destination, verbose, cloneExtraOptions = []) {
+async function clone(url, destination, verbose, cloneExtraOptions = [], branch = 'main') {
     if (verbose)
         info(`Cloning ${url} to ${destination}`);
     const child = await spawnAndWaitForExitCode(gitExePath, [
         'clone',
         '--depth=1',
         '--single-branch',
-        '--branch=main',
+        `--branch=${branch}`,
         ...cloneExtraOptions,
         url,
         destination
@@ -92962,15 +92966,18 @@ async function updateHEAD(bareRepositoryPath, headSHA) {
 async function getViaGit(flavor, architecture, githubToken) {
     const owner = 'git-for-windows';
     const { repo, artifactName } = getArtifactMetadata(flavor, architecture);
+    // The `ucrt64` axis lives on the `ucrt64` branch of `git-sdk-64`;
+    // every other architecture/flavour combination uses `main`.
+    const branch = architecture === 'ucrt64' ? 'ucrt64' : 'main';
     const octokit = githubToken ? new dist_src_Octokit({ auth: githubToken }) : new dist_src_Octokit();
     let head_sha;
-    if (flavor === 'minimal') {
+    if (flavor === 'minimal' && architecture !== 'ucrt64') {
         const info = await octokit.actions.listWorkflowRuns({
             owner,
             repo,
             workflow_id: 938271,
             status: 'success',
-            branch: 'main',
+            branch,
             event: 'push',
             per_page: 1
         });
@@ -92991,7 +92998,7 @@ async function getViaGit(flavor, architecture, githubToken) {
         const info = await octokit.repos.getBranch({
             owner,
             repo,
-            branch: 'main'
+            branch
         });
         head_sha = info.data.commit.sha;
     }
@@ -93003,10 +93010,7 @@ async function getViaGit(flavor, architecture, githubToken) {
         download: async (outputDirectory, verbose = false) => {
             startGroup(`Cloning ${repo}`);
             const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none'];
-            await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
-                '--bare',
-                ...partialCloneArg
-            ]);
+            await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, ['--bare', ...partialCloneArg], branch);
             endGroup();
             let child;
             if (flavor === 'full') {
@@ -93170,7 +93174,13 @@ async function run() {
         // Windows Server 2025 / Windows 11 24H2 (build 26100+) ships a tar.exe
         // that handles Zstandard natively; older versions do not.
         const canExtractZstd = parseInt(external_os_.release().split('.')[2]) >= 26100;
-        const { artifactName, download, id } = flavor === 'minimal' || (flavor === 'build-installers' && canExtractZstd)
+        // The `ucrt64` axis has no pre-built artifact in the `ci-artifacts`
+        // release of `git-sdk-64`, so the fast path is unavailable and we
+        // always have to fall back to materialising the SDK via `getViaGit`.
+        const canUseFastPath = architecture !== 'ucrt64' &&
+            (flavor === 'minimal' ||
+                (flavor === 'build-installers' && canExtractZstd));
+        const { artifactName, download, id } = canUseFastPath
             ? await getViaCIArtifacts(flavor, architecture, githubToken)
             : await getViaGit(flavor, architecture, githubToken);
         const outputDirectory = getInput('path') || `${getDriveLetterPrefix()}${artifactName}`;
@@ -93212,7 +93222,8 @@ async function run() {
         const mingw = {
             i686: 'MINGW32',
             x86_64: 'MINGW64',
-            aarch64: 'CLANGARM64'
+            aarch64: 'CLANGARM64',
+            ucrt64: 'UCRT64'
         }[architecture];
         if (mingw === undefined) {
             setFailed(`Invalid architecture ${architecture} specified`);
