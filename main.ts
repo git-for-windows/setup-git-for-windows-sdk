@@ -102,7 +102,8 @@ async function run(): Promise<void> {
     const mingw = {
       i686: 'MINGW32',
       x86_64: 'MINGW64',
-      aarch64: 'CLANGARM64'
+      aarch64: 'CLANGARM64',
+      ucrt64: 'UCRT64'
     }[architecture]
 
     if (mingw === undefined) {
