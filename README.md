@@ -62,6 +62,8 @@ Git for Windows SDK comes in variants targeting `x86_64` (AKA "64-bit"), `i686` 
 
 Please note that only the `build-installers` and the `full` flavors are available for `i686`.
 
+In addition, the `ucrt64` value selects the UCRT64 variant of `git-sdk-64`. While the [migration from MINGW64 to UCRT64](https://github.com/git-for-windows/git-sdk-64/pull/117) is in progress, this variant lives on a transitional `ucrt64` branch of `git-sdk-64`; once the migration concludes, that branch will replace `main`, at which point `architecture: x86_64` will itself produce a UCRT64 SDK and `ucrt64` becomes a synonym. Until then, this axis runs under `MSYSTEM=UCRT64` with `/ucrt64/bin` on PATH, uses an output directory and cache key that are distinct from `x86_64` so the two variants do not collide on the same runner, and only supports `flavor: full`.
+
 ### Verbosity
 
 By default, this Action prints a line whenever 250 items were extracted (this does not work for the `full` flavor, where this Action is silent by default). It can be overridden by setting the input parameter `verbose`; setting it to a number will show updates whenever that many items were extracted. Setting it to `false` will suppress progress updates. Setting it to `true` will print every extracted file (this also works for the `full` flavor).
