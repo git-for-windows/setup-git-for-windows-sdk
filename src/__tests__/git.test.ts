@@ -98,4 +98,37 @@ describe('git', () => {
     )
     expect(fs.rmSync).toHaveBeenCalledWith('.tmp', {recursive: true})
   })
+
+  test('getViaGit full ucrt64', async () => {
+    const flavor = 'full'
+    const architecture = 'ucrt64'
+    const outputDirectory = 'outputDirectory'
+
+    const spawnSpy = vi
+      .spyOn(spawn, 'spawnAndWaitForExitCode')
+      .mockResolvedValue({
+        exitCode: 0
+      })
+
+    const {artifactName, download} = await git.getViaGit(flavor, architecture)
+
+    // The `ucrt64` axis shares the `git-sdk-64` repository with
+    // `x86_64`, so the artifact name has to differ to keep caches and
+    // on-disk directories distinct.
+    expect(artifactName).toEqual('git-sdk-ucrt64-full')
+
+    await download(outputDirectory, true)
+
+    // The clone must target the `ucrt64` branch of `git-sdk-64`, not
+    // `main`, otherwise the wrong toolchain would be materialised.
+    expect(spawnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/git.exe'),
+      expect.arrayContaining([
+        'clone',
+        '--branch=ucrt64',
+        'https://github.com/git-for-windows/git-sdk-64'
+      ]),
+      expect.any(Object)
+    )
+  })
 })
