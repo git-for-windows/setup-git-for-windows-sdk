@@ -36,14 +36,19 @@ export function getArtifactMetadata(
   const repo = {
     i686: 'git-sdk-32',
     x86_64: 'git-sdk-64',
-    aarch64: 'git-sdk-arm64'
+    aarch64: 'git-sdk-arm64',
+    ucrt64: 'git-sdk-64'
   }[architecture]
 
   if (repo === undefined) {
     throw new Error(`Invalid architecture ${architecture} specified`)
   }
 
-  const artifactName = `${repo}-${flavor}`
+  // The `ucrt64` axis shares its underlying repository with `x86_64`,
+  // so the artifact name must encode the architecture to keep caches
+  // and on-disk output directories distinct from the MINGW64 variant.
+  const artifactName =
+    architecture === 'ucrt64' ? `git-sdk-ucrt64-${flavor}` : `${repo}-${flavor}`
 
   return {repo, artifactName}
 }
