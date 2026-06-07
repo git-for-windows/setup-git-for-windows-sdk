@@ -112,20 +112,38 @@ The Action supports four flavors of the SDK:
 The `architecture` input drives both the underlying `git-sdk-*` repo
 and the `MSYSTEM` / bin-path layout inside the SDK:
 
-| `architecture` | repo            | MSYSTEM      | mingw bin path    | notes                                          |
-| -------------- | --------------- | ------------ | ----------------- | ---------------------------------------------- |
-| `i686`         | `git-sdk-32`    | `MINGW32`    | `/mingw32/bin`    | only `build-installers` and `full`             |
-| `x86_64`       | `git-sdk-64`    | `MINGW64`    | `/mingw64/bin`    | the default; fast path available for `minimal` |
-| `aarch64`      | `git-sdk-arm64` | `CLANGARM64` | `/clangarm64/bin` | only `full` for now                            |
+| `architecture` | repo            | MSYSTEM      | mingw bin path    | notes                                                                                  |
+| -------------- | --------------- | ------------ | ----------------- | -------------------------------------------------------------------------------------- |
+| `i686`         | `git-sdk-32`    | `MINGW32`    | `/mingw32/bin`    | only `build-installers` and `full`                                                     |
+| `x86_64`       | `git-sdk-64`    | `MINGW64`    | `/mingw64/bin`    | the default; fast path available for `minimal`                                         |
+| `aarch64`      | `git-sdk-arm64` | `CLANGARM64` | `/clangarm64/bin` | only `full` for now                                                                    |
+| `ucrt64`       | `git-sdk-64`    | `UCRT64`     | `/ucrt64/bin`     | UCRT64 migration; cloned from the `ucrt64` branch of `git-sdk-64`; only `full` for now |
+
+The `ucrt64` axis is part of the larger UCRT64 migration tracked in
+https://github.com/git-for-windows/git-sdk-64/pull/117 and its
+follow-up comment
+https://github.com/git-for-windows/git-sdk-64/pull/117#issuecomment-4642726384.
+It shares the `git-sdk-64` repository with `x86_64` but is materialised
+from a different long-lived branch, so caches and on-disk directories
+must stay distinct (the artifact name is `git-sdk-ucrt64-<flavor>`
+rather than `git-sdk-64-<flavor>`). The `ci-artifacts` release of
+`git-sdk-64` contains no UCRT64 asset, so the CI-artifacts fast path
+is forcibly skipped for this axis; every flavor takes the
+`getViaGit` path. `build-extra`'s `please.sh create-sdk-artifact` does
+not yet understand `--architecture=ucrt64` either, so right now only
+`flavor: full` (which goes straight through `git worktree add`)
+produces a working SDK. The non-`full` flavors will start working once
+`build-extra` and the `ci-artifacts` pipeline catch up.
 
 ## Relationship to other Git for Windows repositories
 
 - [git-for-windows/git-sdk-64](https://github.com/git-for-windows/git-sdk-64),
   [git-sdk-32](https://github.com/git-for-windows/git-sdk-32),
   [git-sdk-arm64](https://github.com/git-for-windows/git-sdk-arm64) --
-  the bare-repo SDKs themselves. Their `main` branch is what
-  `getViaGit` clones; their `ci-artifacts` release is what
-  `getViaCIArtifacts` downloads.
+  the bare-repo SDKs themselves. Their `main` branch (and, for
+  `git-sdk-64`, the `ucrt64` branch) is what `getViaGit` clones;
+  their `ci-artifacts` release is what `getViaCIArtifacts` downloads
+  (no UCRT64 asset there today).
 - [git-for-windows/build-extra](https://github.com/git-for-windows/build-extra)
   -- provides `please.sh create-sdk-artifact`, used by `getViaGit` to
   carve subset flavors (`minimal`, `makepkg-git`, `build-installers`)
