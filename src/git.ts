@@ -117,15 +117,19 @@ export async function getViaGit(
 
   const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
 
+  // The `ucrt64` axis lives on the `ucrt64` branch of `git-sdk-64`;
+  // every other architecture/flavour combination uses `main`.
+  const branch = architecture === 'ucrt64' ? 'ucrt64' : 'main'
+
   const octokit = githubToken ? new Octokit({auth: githubToken}) : new Octokit()
   let head_sha: string
-  if (flavor === 'minimal') {
+  if (flavor === 'minimal' && architecture !== 'ucrt64') {
     const info = await octokit.actions.listWorkflowRuns({
       owner,
       repo,
       workflow_id: 938271,
       status: 'success',
-      branch: 'main',
+      branch,
       event: 'push',
       per_page: 1
     })
@@ -145,7 +149,7 @@ export async function getViaGit(
     const info = await octokit.repos.getBranch({
       owner,
       repo,
-      branch: 'main'
+      branch
     })
     head_sha = info.data.commit.sha
   }
@@ -161,10 +165,13 @@ export async function getViaGit(
     ): Promise<void> => {
       core.startGroup(`Cloning ${repo}`)
       const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none']
-      await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
-        '--bare',
-        ...partialCloneArg
-      ])
+      await clone(
+        `https://github.com/${owner}/${repo}`,
+        `.tmp`,
+        verbose,
+        ['--bare', ...partialCloneArg],
+        branch
+      )
       core.endGroup()
 
       let child: SpawnReturnArgs
