@@ -57,7 +57,8 @@ export async function clone(
   url: string,
   destination: string,
   verbose: number | boolean,
-  cloneExtraOptions: string[] = []
+  cloneExtraOptions: string[] = [],
+  branch = 'main'
 ): Promise<void> {
   if (verbose) core.info(`Cloning ${url} to ${destination}`)
   const child = await spawnAndWaitForExitCode(
@@ -66,7 +67,7 @@ export async function clone(
       'clone',
       '--depth=1',
       '--single-branch',
-      '--branch=main',
+      `--branch=${branch}`,
       ...cloneExtraOptions,
       url,
       destination
