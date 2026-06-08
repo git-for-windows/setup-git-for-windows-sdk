@@ -18,7 +18,6 @@ inputs:
       MINGW64-to-UCRT64 migration is in progress it is cloned from a
       transitional "ucrt64" branch that will eventually replace "main",
       at which point "x86_64" itself will materialise a UCRT64 SDK.
-      Only the "full" flavor is supported on the "ucrt64" axis for now.
     default: 'x86_64'
   msys:
     required: false
