@@ -45,11 +45,15 @@ jobs:
           - architecture: x86_64
             flavor: minimal
             mingw_prefix: /mingw64
-          # `ucrt64` is wired up end-to-end only for `flavor: full` at
-          # this point (the subset flavors depend on follow-up work in
-          # `build-extra` and the `ci-artifacts` pipeline of
-          # `git-sdk-64`), so that is the one combination we can
-          # meaningfully exercise on every PR.
+          - architecture: ucrt64
+            flavor: minimal
+            mingw_prefix: /ucrt64
+          - architecture: ucrt64
+            flavor: makepkg-git
+            mingw_prefix: /ucrt64
+          - architecture: ucrt64
+            flavor: build-installers
+            mingw_prefix: /ucrt64
           - architecture: ucrt64
             flavor: full
             mingw_prefix: /ucrt64
