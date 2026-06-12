@@ -50,10 +50,17 @@ async function run(): Promise<void> {
     // that handles Zstandard natively; older versions do not.
     const canExtractZstd = parseInt(os.release().split('.')[2]) >= 26100
 
-    const {artifactName, download, id} =
-      flavor === 'minimal' || (flavor === 'build-installers' && canExtractZstd)
-        ? await getViaCIArtifacts(flavor, architecture, githubToken)
-        : await getViaGit(flavor, architecture, githubToken)
+    // The `ucrt64` axis has no pre-built artifact in the `ci-artifacts`
+    // release of `git-sdk-64`, so the fast path is unavailable and we
+    // always have to fall back to materialising the SDK via `getViaGit`.
+    const canUseFastPath =
+      architecture !== 'ucrt64' &&
+      (flavor === 'minimal' ||
+        (flavor === 'build-installers' && canExtractZstd))
+
+    const {artifactName, download, id} = canUseFastPath
+      ? await getViaCIArtifacts(flavor, architecture, githubToken)
+      : await getViaGit(flavor, architecture, githubToken)
     const outputDirectory =
       core.getInput('path') || `${getDriveLetterPrefix()}${artifactName}`
     core.setOutput('result', outputDirectory)
@@ -102,7 +109,8 @@ async function run(): Promise<void> {
     const mingw = {
       i686: 'MINGW32',
       x86_64: 'MINGW64',
-      aarch64: 'CLANGARM64'
+      aarch64: 'CLANGARM64',
+      ucrt64: 'UCRT64'
     }[architecture]
 
     if (mingw === undefined) {

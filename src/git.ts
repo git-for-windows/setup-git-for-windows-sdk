@@ -36,14 +36,19 @@ export function getArtifactMetadata(
   const repo = {
     i686: 'git-sdk-32',
     x86_64: 'git-sdk-64',
-    aarch64: 'git-sdk-arm64'
+    aarch64: 'git-sdk-arm64',
+    ucrt64: 'git-sdk-64'
   }[architecture]
 
   if (repo === undefined) {
     throw new Error(`Invalid architecture ${architecture} specified`)
   }
 
-  const artifactName = `${repo}-${flavor}`
+  // The `ucrt64` axis shares its underlying repository with `x86_64`,
+  // so the artifact name must encode the architecture to keep caches
+  // and on-disk output directories distinct from the MINGW64 variant.
+  const artifactName =
+    architecture === 'ucrt64' ? `git-sdk-ucrt64-${flavor}` : `${repo}-${flavor}`
 
   return {repo, artifactName}
 }
@@ -52,7 +57,8 @@ export async function clone(
   url: string,
   destination: string,
   verbose: number | boolean,
-  cloneExtraOptions: string[] = []
+  cloneExtraOptions: string[] = [],
+  branch = 'main'
 ): Promise<void> {
   if (verbose) core.info(`Cloning ${url} to ${destination}`)
   const child = await spawnAndWaitForExitCode(
@@ -61,7 +67,7 @@ export async function clone(
       'clone',
       '--depth=1',
       '--single-branch',
-      '--branch=main',
+      `--branch=${branch}`,
       ...cloneExtraOptions,
       url,
       destination
@@ -111,15 +117,19 @@ export async function getViaGit(
 
   const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
 
+  // The `ucrt64` axis lives on the `ucrt64` branch of `git-sdk-64`;
+  // every other architecture/flavour combination uses `main`.
+  const branch = architecture === 'ucrt64' ? 'ucrt64' : 'main'
+
   const octokit = githubToken ? new Octokit({auth: githubToken}) : new Octokit()
   let head_sha: string
-  if (flavor === 'minimal') {
+  if (flavor === 'minimal' && architecture !== 'ucrt64') {
     const info = await octokit.actions.listWorkflowRuns({
       owner,
       repo,
       workflow_id: 938271,
       status: 'success',
-      branch: 'main',
+      branch,
       event: 'push',
       per_page: 1
     })
@@ -139,7 +149,7 @@ export async function getViaGit(
     const info = await octokit.repos.getBranch({
       owner,
       repo,
-      branch: 'main'
+      branch
     })
     head_sha = info.data.commit.sha
   }
@@ -155,10 +165,13 @@ export async function getViaGit(
     ): Promise<void> => {
       core.startGroup(`Cloning ${repo}`)
       const partialCloneArg = flavor === 'full' ? [] : ['--filter=blob:none']
-      await clone(`https://github.com/${owner}/${repo}`, `.tmp`, verbose, [
-        '--bare',
-        ...partialCloneArg
-      ])
+      await clone(
+        `https://github.com/${owner}/${repo}`,
+        `.tmp`,
+        verbose,
+        ['--bare', ...partialCloneArg],
+        branch
+      )
       core.endGroup()
 
       let child: SpawnReturnArgs

@@ -38,18 +38,38 @@ jobs:
           name: diff.txt
           path: diff.txt
   test: # make sure the action works on a clean machine without building
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            flavor: minimal
+            mingw_prefix: /mingw64
+          # `ucrt64` is wired up end-to-end only for `flavor: full` at
+          # this point (the subset flavors depend on follow-up work in
+          # `build-extra` and the `ci-artifacts` pipeline of
+          # `git-sdk-64`), so that is the one combination we can
+          # meaningfully exercise on every PR.
+          - architecture: ucrt64
+            flavor: full
+            mingw_prefix: /ucrt64
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
       - name: Run this Action in-place
         uses: ./
+        with:
+          flavor: ${{ matrix.flavor }}
+          architecture: ${{ matrix.architecture }}
       - name: Verify that the Bash of Git for Windows' SDK is used
         shell: bash
+        env:
+          MINGW_PREFIX: ${{ matrix.mingw_prefix }}
         run: |
           set -ex
           test ! -e .tmp
           echo "This is the MSYS2 pseudo root: $(cygpath -aw /)"
-          test "gcc is /mingw64/bin/gcc" = "$(type gcc)"
+          test "gcc is $MINGW_PREFIX/bin/gcc" = "$(type gcc)"
           test "prove is /usr/bin/core_perl/prove" = "$(type prove)"
           prove -V
           printf '%s\n' \
