@@ -1,6 +1,6 @@
 {
   "name": "setup-git-for-windows-sdk",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Set up an environment to develop Git for Windows TypeScript template action",
   "main": "lib/main.js",
