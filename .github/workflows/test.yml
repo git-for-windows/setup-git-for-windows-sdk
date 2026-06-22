@@ -12,7 +12,7 @@ jobs:
   build: # make sure build/ci work properly
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -59,7 +59,7 @@ jobs:
             mingw_prefix: /ucrt64
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run this Action in-place
         uses: ./
         with:
