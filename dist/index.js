@@ -39106,7 +39106,7 @@ module.exports = { version: packageJson.version }
 /***/ 4012:
 /***/ ((module) => {
 
-module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"6.0.0","description":"Actions cache lib","keywords":["github","actions","cache"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/cache","license":"MIT","type":"module","main":"lib/cache.js","types":"lib/cache.d.ts","exports":{".":{"types":"./lib/cache.d.ts","import":"./lib/cache.js"}},"directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/cache"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"echo \\"Error: run tests from root\\" && exit 1","tsc":"tsc && cp src/internal/shared/package-version.cjs lib/internal/shared/"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^3.0.0","@actions/exec":"^3.0.0","@actions/glob":"^0.6.1","@actions/http-client":"^4.0.0","@actions/io":"^3.0.0","@azure/core-rest-pipeline":"^1.22.0","@azure/storage-blob":"^12.30.0","@protobuf-ts/runtime-rpc":"^2.11.1","semver":"^7.7.3"},"devDependencies":{"@protobuf-ts/plugin":"^2.9.4","@types/node":"^25.1.0","@types/semver":"^7.7.1","typescript":"^5.2.2"},"overrides":{"uri-js":"npm:uri-js-replace@^1.0.1","node-fetch":"^3.3.2"}}');
+module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"6.1.0","description":"Actions cache lib","keywords":["github","actions","cache"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/cache","license":"MIT","type":"module","main":"lib/cache.js","types":"lib/cache.d.ts","exports":{".":{"types":"./lib/cache.d.ts","import":"./lib/cache.js"}},"directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/cache"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"echo \\"Error: run tests from root\\" && exit 1","tsc":"tsc && cp src/internal/shared/package-version.cjs lib/internal/shared/"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^3.0.1","@actions/exec":"^3.0.0","@actions/glob":"^0.6.1","@actions/http-client":"^4.0.1","@actions/io":"^3.0.2","@azure/core-rest-pipeline":"^1.23.0","@azure/storage-blob":"^12.31.0","@protobuf-ts/runtime-rpc":"^2.11.1","semver":"^7.7.4"},"devDependencies":{"@protobuf-ts/plugin":"^2.11.1","@types/node":"^25.6.0","@types/semver":"^7.7.1","typescript":"^5.9.3"},"overrides":{"uri-js":"npm:uri-js-replace@^1.0.1","node-fetch":"^3.3.2"}}');
 
 /***/ })
 
@@ -86676,7 +86676,7 @@ NetworkError.isNetworkErrorCode = (code) => {
 };
 class UsageError extends Error {
     constructor() {
-        const message = `Cache storage quota has been hit. Unable to upload any new cache entries. Usage is recalculated every 6-12 hours.\nMore info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`;
+        const message = `Cache storage quota has been hit. Unable to upload any new cache entries.\nMore info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`;
         super(message);
         this.name = 'UsageError';
     }
@@ -88756,6 +88756,35 @@ class ReserveCacheError extends Error {
         Object.setPrototypeOf(this, ReserveCacheError.prototype);
     }
 }
+/**
+ * Stable prefix the receiver writes into the cache reservation response when
+ * the issuer downgraded the cache token to read-only (for example, because
+ * the run was triggered by an untrusted event). saveCacheV1 / saveCacheV2
+ * dispatch on this prefix to re-classify the failure as a
+ * CacheWriteDeniedError so consumers (and the outer catch arm) can
+ * distinguish a policy denial from other reservation failures.
+ */
+const CACHE_WRITE_DENIED_PREFIX = 'cache write denied:';
+/**
+ * Raised when the cache backend refuses to reserve a writable cache entry
+ * because the JWT issued for this run was scoped read-only (for example, the
+ * run was triggered by an event the repository administrator classified as
+ * untrusted). The receiver-supplied detail message always begins with
+ * `cache write denied:` (the full error message includes additional context
+ * like the cache key).
+ *
+ * Extends ReserveCacheError for source-compatibility: existing
+ * `instanceof ReserveCacheError` checks and `typedError.name ===
+ * ReserveCacheError.name` paths keep working, while consumers that want to
+ * distinguish the policy case can match on this subclass.
+ */
+class CacheWriteDeniedError extends ReserveCacheError {
+    constructor(message) {
+        super(message);
+        this.name = 'CacheWriteDeniedError';
+        Object.setPrototypeOf(this, CacheWriteDeniedError.prototype);
+    }
+}
 class FinalizeCacheError extends Error {
     constructor(message) {
         super(message);
@@ -89028,7 +89057,7 @@ function cache_saveCache(paths_1, key_1, options_1) {
  */
 function saveCacheV1(paths_1, key_1, options_1) {
     return cache_awaiter(this, arguments, void 0, function* (paths, key, options, enableCrossOsArchive = false) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f;
         const compressionMethod = yield getCompressionMethod();
         let cacheId = -1;
         const cachePaths = yield resolvePaths(paths);
@@ -89065,7 +89094,17 @@ function saveCacheV1(paths_1, key_1, options_1) {
                 throw new Error((_d = (_c = reserveCacheResponse === null || reserveCacheResponse === void 0 ? void 0 : reserveCacheResponse.error) === null || _c === void 0 ? void 0 : _c.message) !== null && _d !== void 0 ? _d : `Cache size of ~${Math.round(archiveFileSize / (1024 * 1024))} MB (${archiveFileSize} B) is over the data cap limit, not saving cache.`);
             }
             else {
-                throw new ReserveCacheError(`Unable to reserve cache with key ${key}, another job may be creating this cache. More details: ${(_e = reserveCacheResponse === null || reserveCacheResponse === void 0 ? void 0 : reserveCacheResponse.error) === null || _e === void 0 ? void 0 : _e.message}`);
+                // Inspect the receiver's error message before deciding which error to
+                // throw. A message starting with the stable `cache write denied:`
+                // prefix indicates the issuer downgraded the token to read-only
+                // (policy denial), not a contention case, so we surface it as a
+                // CacheWriteDeniedError which the outer catch arm logs at warning
+                // level.
+                const detailMessage = (_e = reserveCacheResponse === null || reserveCacheResponse === void 0 ? void 0 : reserveCacheResponse.error) === null || _e === void 0 ? void 0 : _e.message;
+                if (detailMessage === null || detailMessage === void 0 ? void 0 : detailMessage.startsWith(CACHE_WRITE_DENIED_PREFIX)) {
+                    throw new CacheWriteDeniedError(`Unable to reserve cache with key ${key}. More details: ${detailMessage}`);
+                }
+                throw new ReserveCacheError(`Unable to reserve cache with key ${key}, another job may be creating this cache. More details: ${(_f = reserveCacheResponse === null || reserveCacheResponse === void 0 ? void 0 : reserveCacheResponse.error) === null || _f === void 0 ? void 0 : _f.message}`);
             }
             core_debug(`Saving Cache (ID: ${cacheId})`);
             yield saveCache(cacheId, archivePath, '', options);
@@ -89074,6 +89113,12 @@ function saveCacheV1(paths_1, key_1, options_1) {
             const typedError = error;
             if (typedError.name === ValidationError.name) {
                 throw error;
+            }
+            else if (typedError.name === CacheWriteDeniedError.name) {
+                // Cache write was denied by policy (read-only token). Surface to the
+                // customer at warning level so it is visible in the workflow log
+                // without failing the run.
+                warning(`Failed to save: ${typedError.message}`);
             }
             else if (typedError.name === ReserveCacheError.name) {
                 info(`Failed to save: ${typedError.message}`);
@@ -89113,6 +89158,7 @@ function saveCacheV1(paths_1, key_1, options_1) {
  */
 function saveCacheV2(paths_1, key_1, options_1) {
     return cache_awaiter(this, arguments, void 0, function* (paths, key, options, enableCrossOsArchive = false) {
+        var _a;
         // Override UploadOptions to force the use of Azure
         // ...options goes first because we want to override the default values
         // set in UploadOptions with these specific figures
@@ -89148,7 +89194,11 @@ function saveCacheV2(paths_1, key_1, options_1) {
             try {
                 const response = yield twirpClient.CreateCacheEntry(request);
                 if (!response.ok) {
-                    if (response.message) {
+                    // Skip the redundant inner warning when the receiver signalled a
+                    // policy denial: the outer catch arm below will log a single
+                    // customer-facing warning.
+                    if (response.message &&
+                        !response.message.startsWith(CACHE_WRITE_DENIED_PREFIX)) {
                         warning(`Cache reservation failed: ${response.message}`);
                     }
                     throw new Error(response.message || 'Response was not ok');
@@ -89157,6 +89207,10 @@ function saveCacheV2(paths_1, key_1, options_1) {
             }
             catch (error) {
                 core_debug(`Failed to reserve cache: ${error}`);
+                const errorMessage = (_a = error === null || error === void 0 ? void 0 : error.message) !== null && _a !== void 0 ? _a : '';
+                if (errorMessage.startsWith(CACHE_WRITE_DENIED_PREFIX)) {
+                    throw new CacheWriteDeniedError(`Unable to reserve cache with key ${key}. More details: ${errorMessage}`);
+                }
                 throw new ReserveCacheError(`Unable to reserve cache with key ${key}, another job may be creating this cache.`);
             }
             core_debug(`Attempting to upload cache located at: ${archivePath}`);
@@ -89180,6 +89234,12 @@ function saveCacheV2(paths_1, key_1, options_1) {
             const typedError = error;
             if (typedError.name === ValidationError.name) {
                 throw error;
+            }
+            else if (typedError.name === CacheWriteDeniedError.name) {
+                // Cache write was denied by policy (read-only token). Surface to the
+                // customer at warning level so it is visible in the workflow log
+                // without failing the run.
+                warning(`Failed to save: ${typedError.message}`);
             }
             else if (typedError.name === ReserveCacheError.name) {
                 info(`Failed to save: ${typedError.message}`);
