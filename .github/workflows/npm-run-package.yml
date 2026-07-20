@@ -22,7 +22,7 @@ jobs:
           repository: ${{ github.event.repository.full_name }}
           ref: ${{ inputs.branch }}${{ github.event.ref }}
           token: ${{ secrets.GIT_FOR_WINDOWS_CI_PUSH }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       - run: npm ci
