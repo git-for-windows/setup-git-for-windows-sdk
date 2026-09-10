@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         flavor: ['minimal', 'makepkg-git', 'build-installers', 'full']
-        architecture: ['i686', 'x86_64', 'ucrt64']
+        architecture: ['i686', 'x86_64', 'mingw64', 'ucrt64']
         exclude:
           - flavor: minimal
             architecture: i686

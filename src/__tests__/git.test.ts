@@ -100,9 +100,9 @@ describe('git', () => {
     expect(fs.rmSync).toHaveBeenCalledWith('.tmp', {recursive: true})
   })
 
-  test('getViaGit full ucrt64', async () => {
+  test.each(['ucrt64', 'mingw64'])('getViaGit full %s', async arch => {
     const flavor = 'full'
-    const architecture = 'ucrt64'
+    const architecture = arch
     const outputDirectory = 'outputDirectory'
 
     const spawnSpy = vi
@@ -113,20 +113,20 @@ describe('git', () => {
 
     const {artifactName, download} = await git.getViaGit(flavor, architecture)
 
-    // The `ucrt64` axis shares the `git-sdk-64` repository with
+    // The pseudo-architectures share the `git-sdk-64` repository with
     // `x86_64`, so the artifact name has to differ to keep caches and
     // on-disk directories distinct.
-    expect(artifactName).toEqual('git-sdk-ucrt64-full')
+    expect(artifactName).toEqual(`git-sdk-${architecture}-full`)
 
     await download(outputDirectory, true)
 
-    // The clone must target the `ucrt64` branch of `git-sdk-64`, not
+    // The clone must target the matching branch of `git-sdk-64`, not
     // `main`, otherwise the wrong toolchain would be materialised.
     expect(spawnSpy).toHaveBeenCalledWith(
       expect.stringContaining('/git.exe'),
       expect.arrayContaining([
         'clone',
-        '--branch=ucrt64',
+        `--branch=${architecture}`,
         'https://github.com/git-for-windows/git-sdk-64'
       ]),
       expect.any(Object)

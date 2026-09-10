@@ -50,11 +50,10 @@ async function run(): Promise<void> {
     // that handles Zstandard natively; older versions do not.
     const canExtractZstd = parseInt(os.release().split('.')[2]) >= 26100
 
-    // The `ucrt64` axis has no pre-built artifact in the `ci-artifacts`
-    // release of `git-sdk-64`, so the fast path is unavailable and we
-    // always have to fall back to materialising the SDK via `getViaGit`.
+    // The pseudo-architectures have no pre-built artifacts in the
+    // `ci-artifacts` release of `git-sdk-64`, so always use `getViaGit`.
     const canUseFastPath =
-      architecture !== 'ucrt64' &&
+      !['mingw64', 'ucrt64'].includes(architecture) &&
       (flavor === 'minimal' ||
         (flavor === 'build-installers' && canExtractZstd))
 
@@ -110,6 +109,7 @@ async function run(): Promise<void> {
       i686: 'MINGW32',
       x86_64: 'MINGW64',
       aarch64: 'CLANGARM64',
+      mingw64: 'MINGW64',
       ucrt64: 'UCRT64'
     }[architecture]
 
