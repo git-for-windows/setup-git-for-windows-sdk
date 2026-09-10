@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import {mkdirp} from './src/downloader.js'
 import {restoreCache, saveCache} from '@actions/cache'
+import {readFileSync} from 'fs'
 import process from 'process'
 import * as os from 'os'
 import {spawnSync} from 'child_process'
@@ -13,7 +14,21 @@ import {getViaCIArtifacts} from './src/ci_artifacts.js'
 import * as fs from 'fs'
 
 const flavor = core.getInput('flavor')
-const architecture = core.getInput('architecture')
+let architecture = core.getInput('architecture')
+if (!architecture) {
+  try {
+    const configMakUname = readFileSync('config.mak.uname')
+    if (configMakUname?.toString().includes('_USE_32BIT_TIME_T')) {
+      process.stderr.write(
+        `Detected old upstream Git; Falling back to MINGW64\n`
+      )
+      architecture = 'mingw64'
+    }
+  } catch {
+    /* ignore if `config.mak.uname` is not present */
+  }
+  architecture ||= 'x86_64'
+}
 
 /**
  * Some Azure VM types have a temporary disk which is local to the VM and therefore provides

@@ -20,7 +20,6 @@ inputs:
       at which point "x86_64" itself will materialise a UCRT64 SDK.
       "mingw64" selects the "mingw64" branch of git-sdk-64 to retain
       MINGW64 after that migration.
-    default: 'x86_64'
   msys:
     required: false
     description: 'Whether to start in MSYS mode (defaults to false)'
