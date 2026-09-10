@@ -17,6 +17,15 @@ vi.mock('../git.js', async () => ({
   ...(await vi.importActual('../git.js'))
 }))
 
+vi.mock('child_process', async () => ({
+  ...(await vi.importActual('child_process')),
+  spawnSync: vi.fn(() => ({
+    status: 0,
+    stdout: Buffer.from('0123456789abcdef0123456789abcdef01234567\n'),
+    stderr: Buffer.alloc(0)
+  }))
+}))
+
 const fs = await import('fs')
 const git = await import('../git.js')
 const spawn = await import('../spawn.js')

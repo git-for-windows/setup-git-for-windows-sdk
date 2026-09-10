@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import {spawnAndWaitForExitCode, SpawnReturnArgs} from './spawn.js'
 import {Octokit} from '@octokit/rest'
+import {spawnSync} from 'child_process'
 import {delimiter} from 'path'
 import * as fs from 'fs'
 
@@ -86,6 +87,21 @@ export async function clone(
   if (child.exitCode !== 0) {
     throw new Error(`git clone: exited with code ${child.exitCode}`)
   }
+  const clonedGitDir = `${destination}${cloneExtraOptions.includes('--bare') ? '' : '/.git'}`
+  const tipCommit = spawnSync(gitExePath, [
+    `--git-dir=${clonedGitDir}`,
+    'rev-parse',
+    'HEAD'
+  ])
+  if (tipCommit.error) throw tipCommit.error
+  if (tipCommit.status !== 0) {
+    throw new Error(
+      `rev-parse HEAD failed with ${tipCommit.status}: ${tipCommit.stderr}`
+    )
+  }
+  process.stdout.write(
+    `Cloned ${tipCommit.stdout.toString().trim()} to ${destination}\n`
+  )
 }
 
 async function updateHEAD(
