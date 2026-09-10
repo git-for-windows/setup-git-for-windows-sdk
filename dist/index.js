@@ -93733,13 +93733,20 @@ const dist_src_Octokit = Octokit.plugin(requestLog, legacyRestEndpointMethods, p
 
 
 
+
 // If present, do prefer the build agent's copy of Git
 const externalsGitDir = `${process.env.AGENT_HOMEDIRECTORY}/externals/git`;
 const gitForWindowsRoot = 'C:/Program Files/Git';
 const gitRoot = external_fs_namespaceObject.existsSync(externalsGitDir)
     ? externalsGitDir
     : gitForWindowsRoot;
-const gitForWindowsBinPaths = ['clangarm64', 'mingw64', 'mingw32', 'usr'].map(p => `${gitRoot}/${p}/bin`);
+const gitForWindowsBinPaths = [
+    'clangarm64',
+    'ucrt64',
+    'mingw64',
+    'mingw32',
+    'usr'
+].map(p => `${gitRoot}/${p}/bin`);
 const gitForWindowsUsrBinPath = gitForWindowsBinPaths[gitForWindowsBinPaths.length - 1];
 const gitExePath = `${gitRoot}/cmd/git.exe`;
 /*
@@ -93757,15 +93764,17 @@ function getArtifactMetadata(flavor, architecture) {
         i686: 'git-sdk-32',
         x86_64: 'git-sdk-64',
         aarch64: 'git-sdk-arm64',
+        mingw64: 'git-sdk-64',
         ucrt64: 'git-sdk-64'
     }[architecture];
     if (repo === undefined) {
         throw new Error(`Invalid architecture ${architecture} specified`);
     }
-    // The `ucrt64` axis shares its underlying repository with `x86_64`,
-    // so the artifact name must encode the architecture to keep caches
-    // and on-disk output directories distinct from the MINGW64 variant.
-    const artifactName = architecture === 'ucrt64' ? `git-sdk-ucrt64-${flavor}` : `${repo}-${flavor}`;
+    // The pseudo-architectures share their repository with `x86_64`, so
+    // their artifact names must keep caches and output directories distinct.
+    const artifactName = ['mingw64', 'ucrt64'].includes(architecture)
+        ? `git-sdk-${architecture}-${flavor}`
+        : `${repo}-${flavor}`;
     return { repo, artifactName };
 }
 async function clone(url, destination, verbose, cloneExtraOptions = [], branch = 'main') {
@@ -93787,6 +93796,18 @@ async function clone(url, destination, verbose, cloneExtraOptions = [], branch =
     if (child.exitCode !== 0) {
         throw new Error(`git clone: exited with code ${child.exitCode}`);
     }
+    const clonedGitDir = `${destination}${cloneExtraOptions.includes('--bare') ? '' : '/.git'}`;
+    const tipCommit = (0,external_child_process_namespaceObject.spawnSync)(gitExePath, [
+        `--git-dir=${clonedGitDir}`,
+        'rev-parse',
+        'HEAD'
+    ]);
+    if (tipCommit.error)
+        throw tipCommit.error;
+    if (tipCommit.status !== 0) {
+        throw new Error(`rev-parse HEAD failed with ${tipCommit.status}: ${tipCommit.stderr}`);
+    }
+    process.stdout.write(`Cloned ${tipCommit.stdout.toString().trim()} to ${destination}\n`);
 }
 async function updateHEAD(bareRepositoryPath, headSHA) {
     const child = await spawnAndWaitForExitCode(gitExePath, ['--git-dir', bareRepositoryPath, 'update-ref', 'HEAD', headSHA], {
@@ -93801,12 +93822,12 @@ async function updateHEAD(bareRepositoryPath, headSHA) {
 async function getViaGit(flavor, architecture, githubToken) {
     const owner = 'git-for-windows';
     const { repo, artifactName } = getArtifactMetadata(flavor, architecture);
-    // The `ucrt64` axis lives on the `ucrt64` branch of `git-sdk-64`;
-    // every other architecture/flavour combination uses `main`.
-    const branch = architecture === 'ucrt64' ? 'ucrt64' : 'main';
+    const branch = ['mingw64', 'ucrt64'].includes(architecture)
+        ? architecture
+        : 'main';
     const octokit = githubToken ? new dist_src_Octokit({ auth: githubToken }) : new dist_src_Octokit();
     let head_sha;
-    if (flavor === 'minimal' && architecture !== 'ucrt64') {
+    if (flavor === 'minimal' && branch === 'main') {
         const info = await octokit.actions.listWorkflowRuns({
             owner,
             repo,
@@ -93979,8 +94000,22 @@ async function getViaCIArtifacts(flavor, architecture, githubToken) {
 
 
 
+
 const flavor = getInput('flavor');
-const architecture = getInput('architecture');
+let architecture = getInput('architecture');
+if (!architecture) {
+    try {
+        const configMakUname = (0,external_fs_namespaceObject.readFileSync)('config.mak.uname');
+        if (configMakUname?.toString().includes('_USE_32BIT_TIME_T')) {
+            external_process_namespaceObject.stderr.write(`Detected old upstream Git; Falling back to MINGW64\n`);
+            architecture = 'mingw64';
+        }
+    }
+    catch {
+        /* ignore if `config.mak.uname` is not present */
+    }
+    architecture ||= 'ucrt64';
+}
 /**
  * Some Azure VM types have a temporary disk which is local to the VM and therefore provides
  * _much_ faster disk IO than the OS Disk (or any other attached disk).
@@ -94009,10 +94044,9 @@ async function run() {
         // Windows Server 2025 / Windows 11 24H2 (build 26100+) ships a tar.exe
         // that handles Zstandard natively; older versions do not.
         const canExtractZstd = parseInt(external_os_namespaceObject.release().split('.')[2]) >= 26100;
-        // The `ucrt64` axis has no pre-built artifact in the `ci-artifacts`
-        // release of `git-sdk-64`, so the fast path is unavailable and we
-        // always have to fall back to materialising the SDK via `getViaGit`.
-        const canUseFastPath = architecture !== 'ucrt64' &&
+        // The pseudo-architectures have no pre-built artifacts in the
+        // `ci-artifacts` release of `git-sdk-64`, so always use `getViaGit`.
+        const canUseFastPath = !['mingw64', 'ucrt64'].includes(architecture) &&
             (flavor === 'minimal' ||
                 (flavor === 'build-installers' && canExtractZstd));
         const { artifactName, download, id } = canUseFastPath
@@ -94058,6 +94092,7 @@ async function run() {
             i686: 'MINGW32',
             x86_64: 'MINGW64',
             aarch64: 'CLANGARM64',
+            mingw64: 'MINGW64',
             ucrt64: 'UCRT64'
         }[architecture];
         if (mingw === undefined) {
