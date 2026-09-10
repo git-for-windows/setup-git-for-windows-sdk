@@ -27,7 +27,7 @@ if (!architecture) {
   } catch {
     /* ignore if `config.mak.uname` is not present */
   }
-  architecture ||= 'ucrt64'
+  architecture ||= 'x86_64'
 }
 
 /**
