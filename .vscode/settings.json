@@ -11,6 +11,7 @@
         "mingw-w64-git",
         "mingw32",
         "mingw64",
+        "ucrt64",
         "pcre2",
         "vstfs://.*"
     ],
