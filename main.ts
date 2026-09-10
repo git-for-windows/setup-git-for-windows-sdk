@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import {mkdirp} from './src/downloader.js'
 import {restoreCache, saveCache} from '@actions/cache'
+import {readFileSync} from 'fs'
 import process from 'process'
 import * as os from 'os'
 import {spawnSync} from 'child_process'
@@ -13,7 +14,21 @@ import {getViaCIArtifacts} from './src/ci_artifacts.js'
 import * as fs from 'fs'
 
 const flavor = core.getInput('flavor')
-const architecture = core.getInput('architecture')
+let architecture = core.getInput('architecture')
+if (!architecture) {
+  try {
+    const configMakUname = readFileSync('config.mak.uname')
+    if (configMakUname?.toString().includes('_USE_32BIT_TIME_T')) {
+      process.stderr.write(
+        `Detected old upstream Git; Falling back to MINGW64\n`
+      )
+      architecture = 'mingw64'
+    }
+  } catch {
+    /* ignore if `config.mak.uname` is not present */
+  }
+  architecture ||= 'ucrt64'
+}
 
 /**
  * Some Azure VM types have a temporary disk which is local to the VM and therefore provides
@@ -50,11 +65,10 @@ async function run(): Promise<void> {
     // that handles Zstandard natively; older versions do not.
     const canExtractZstd = parseInt(os.release().split('.')[2]) >= 26100
 
-    // The `ucrt64` axis has no pre-built artifact in the `ci-artifacts`
-    // release of `git-sdk-64`, so the fast path is unavailable and we
-    // always have to fall back to materialising the SDK via `getViaGit`.
+    // The pseudo-architectures have no pre-built artifacts in the
+    // `ci-artifacts` release of `git-sdk-64`, so always use `getViaGit`.
     const canUseFastPath =
-      architecture !== 'ucrt64' &&
+      !['mingw64', 'ucrt64'].includes(architecture) &&
       (flavor === 'minimal' ||
         (flavor === 'build-installers' && canExtractZstd))
 
@@ -110,6 +124,7 @@ async function run(): Promise<void> {
       i686: 'MINGW32',
       x86_64: 'MINGW64',
       aarch64: 'CLANGARM64',
+      mingw64: 'MINGW64',
       ucrt64: 'UCRT64'
     }[architecture]
 

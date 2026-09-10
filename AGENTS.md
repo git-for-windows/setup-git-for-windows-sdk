@@ -117,6 +117,7 @@ and the `MSYSTEM` / bin-path layout inside the SDK:
 | `i686`         | `git-sdk-32`    | `MINGW32`    | `/mingw32/bin`    | only `build-installers` and `full`                                |
 | `x86_64`       | `git-sdk-64`    | `MINGW64`    | `/mingw64/bin`    | the default; fast path available for `minimal`                    |
 | `aarch64`      | `git-sdk-arm64` | `CLANGARM64` | `/clangarm64/bin` | only `full` for now                                               |
+| `mingw64`      | `git-sdk-64`    | `MINGW64`    | `/mingw64/bin`   | cloned from the `mingw64` branch of `git-sdk-64`                  |
 | `ucrt64`       | `git-sdk-64`    | `UCRT64`     | `/ucrt64/bin`     | UCRT64 migration; cloned from the `ucrt64` branch of `git-sdk-64` |
 
 The `ucrt64` axis is part of the larger UCRT64 migration tracked in
@@ -134,15 +135,20 @@ flavor takes the `getViaGit` path, with `please.sh create-sdk-artifact
 --architecture=ucrt64` carving the subset flavors out of the full SDK
 clone exactly as it does for the other architectures.
 
+The `mingw64` axis similarly uses its own branch of `git-sdk-64` for
+all flavors, with `git-sdk-mingw64-<flavor>` artifact names and no
+CI-artifacts fast path. It preserves `MSYSTEM=MINGW64` and
+`/mingw64/bin` when `main` moves to UCRT64.
+
 ## Relationship to other Git for Windows repositories
 
 - [git-for-windows/git-sdk-64](https://github.com/git-for-windows/git-sdk-64),
   [git-sdk-32](https://github.com/git-for-windows/git-sdk-32),
   [git-sdk-arm64](https://github.com/git-for-windows/git-sdk-arm64) --
   the bare-repo SDKs themselves. Their `main` branch (and, for
-  `git-sdk-64`, the `ucrt64` branch) is what `getViaGit` clones;
+  `git-sdk-64`, the `mingw64` and `ucrt64` branches) is what `getViaGit` clones;
   their `ci-artifacts` release is what `getViaCIArtifacts` downloads
-  (no UCRT64 asset there today).
+  (no `mingw64` or `ucrt64` assets there today).
 - [git-for-windows/build-extra](https://github.com/git-for-windows/build-extra)
   -- provides `please.sh create-sdk-artifact`, used by `getViaGit` to
   carve subset flavors (`minimal`, `makepkg-git`, `build-installers`)

@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import {spawnAndWaitForExitCode, SpawnReturnArgs} from './spawn.js'
 import {Octokit} from '@octokit/rest'
+import {spawnSync} from 'child_process'
 import {delimiter} from 'path'
 import * as fs from 'fs'
 
@@ -11,9 +12,13 @@ const gitRoot = fs.existsSync(externalsGitDir)
   ? externalsGitDir
   : gitForWindowsRoot
 
-const gitForWindowsBinPaths = ['clangarm64', 'mingw64', 'mingw32', 'usr'].map(
-  p => `${gitRoot}/${p}/bin`
-)
+const gitForWindowsBinPaths = [
+  'clangarm64',
+  'ucrt64',
+  'mingw64',
+  'mingw32',
+  'usr'
+].map(p => `${gitRoot}/${p}/bin`)
 export const gitForWindowsUsrBinPath =
   gitForWindowsBinPaths[gitForWindowsBinPaths.length - 1]
 const gitExePath = `${gitRoot}/cmd/git.exe`
@@ -37,6 +42,7 @@ export function getArtifactMetadata(
     i686: 'git-sdk-32',
     x86_64: 'git-sdk-64',
     aarch64: 'git-sdk-arm64',
+    mingw64: 'git-sdk-64',
     ucrt64: 'git-sdk-64'
   }[architecture]
 
@@ -44,11 +50,11 @@ export function getArtifactMetadata(
     throw new Error(`Invalid architecture ${architecture} specified`)
   }
 
-  // The `ucrt64` axis shares its underlying repository with `x86_64`,
-  // so the artifact name must encode the architecture to keep caches
-  // and on-disk output directories distinct from the MINGW64 variant.
-  const artifactName =
-    architecture === 'ucrt64' ? `git-sdk-ucrt64-${flavor}` : `${repo}-${flavor}`
+  // The pseudo-architectures share their repository with `x86_64`, so
+  // their artifact names must keep caches and output directories distinct.
+  const artifactName = ['mingw64', 'ucrt64'].includes(architecture)
+    ? `git-sdk-${architecture}-${flavor}`
+    : `${repo}-${flavor}`
 
   return {repo, artifactName}
 }
@@ -81,6 +87,21 @@ export async function clone(
   if (child.exitCode !== 0) {
     throw new Error(`git clone: exited with code ${child.exitCode}`)
   }
+  const clonedGitDir = `${destination}${cloneExtraOptions.includes('--bare') ? '' : '/.git'}`
+  const tipCommit = spawnSync(gitExePath, [
+    `--git-dir=${clonedGitDir}`,
+    'rev-parse',
+    'HEAD'
+  ])
+  if (tipCommit.error) throw tipCommit.error
+  if (tipCommit.status !== 0) {
+    throw new Error(
+      `rev-parse HEAD failed with ${tipCommit.status}: ${tipCommit.stderr}`
+    )
+  }
+  process.stdout.write(
+    `Cloned ${tipCommit.stdout.toString().trim()} to ${destination}\n`
+  )
 }
 
 async function updateHEAD(
@@ -117,13 +138,13 @@ export async function getViaGit(
 
   const {repo, artifactName} = getArtifactMetadata(flavor, architecture)
 
-  // The `ucrt64` axis lives on the `ucrt64` branch of `git-sdk-64`;
-  // every other architecture/flavour combination uses `main`.
-  const branch = architecture === 'ucrt64' ? 'ucrt64' : 'main'
+  const branch = ['mingw64', 'ucrt64'].includes(architecture)
+    ? architecture
+    : 'main'
 
   const octokit = githubToken ? new Octokit({auth: githubToken}) : new Octokit()
   let head_sha: string
-  if (flavor === 'minimal' && architecture !== 'ucrt64') {
+  if (flavor === 'minimal' && branch === 'main') {
     const info = await octokit.actions.listWorkflowRuns({
       owner,
       repo,
