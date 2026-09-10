@@ -238,7 +238,7 @@ export async function getViaGit(
                 `${process.env.WINDIR}\\system32\\cmd.exe`,
               LC_CTYPE: 'C.UTF-8',
               CHERE_INVOKING: '1',
-              MSYSTEM: 'MINGW64',
+              MSYSTEM: 'UCRT64',
               PATH: `${gitForWindowsBinPaths.join(delimiter)}${delimiter}${process.env.PATH}`
             }
           }

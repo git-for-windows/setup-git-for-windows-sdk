@@ -93899,7 +93899,7 @@ async function getViaGit(flavor, architecture, githubToken) {
                             `${process.env.WINDIR}\\system32\\cmd.exe`,
                         LC_CTYPE: 'C.UTF-8',
                         CHERE_INVOKING: '1',
-                        MSYSTEM: 'MINGW64',
+                        MSYSTEM: 'UCRT64',
                         PATH: `${gitForWindowsBinPaths.join(external_path_.delimiter)}${external_path_.delimiter}${process.env.PATH}`
                     }
                 });
@@ -94014,7 +94014,7 @@ if (!architecture) {
     catch {
         /* ignore if `config.mak.uname` is not present */
     }
-    architecture ||= 'ucrt64';
+    architecture ||= 'x86_64';
 }
 /**
  * Some Azure VM types have a temporary disk which is local to the VM and therefore provides
@@ -94090,7 +94090,7 @@ async function run() {
         }
         const mingw = {
             i686: 'MINGW32',
-            x86_64: 'MINGW64',
+            x86_64: 'UCRT64',
             aarch64: 'CLANGARM64',
             mingw64: 'MINGW64',
             ucrt64: 'UCRT64'

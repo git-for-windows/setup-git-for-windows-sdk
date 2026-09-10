@@ -62,7 +62,7 @@ Git for Windows SDK comes in variants targeting `x86_64` (AKA "64-bit"), `i686` 
 
 Please note that only the `build-installers` and the `full` flavors are available for `i686`.
 
-In addition, the `ucrt64` value selects the UCRT64 variant of `git-sdk-64`. While the [migration from MINGW64 to UCRT64](https://github.com/git-for-windows/git-sdk-64/pull/117) is in progress, this variant lives on a transitional `ucrt64` branch of `git-sdk-64`; once the migration concludes, that branch will replace `main`, at which point `architecture: x86_64` will itself produce a UCRT64 SDK and `ucrt64` becomes a synonym. Until then, this axis runs under `MSYSTEM=UCRT64` with `/ucrt64/bin` on PATH and uses an output directory and cache key that are distinct from `x86_64` so the two variants do not collide on the same runner.
+In addition, the `ucrt64` value selects the UCRT64 variant of `git-sdk-64`. While the [migration from MINGW64 to UCRT64](https://github.com/git-for-windows/git-sdk-64/pull/117) was in progress, this variant lived on a transitional `ucrt64` branch of `git-sdk-64`; it now loves on `main` instead, and `architecture: x86_64` produces a UCRT64 SDK (`ucrt64` is a synonym).
 
 To stay on MINGW64 after that migration, select `architecture: mingw64`.
 All four flavors use the `mingw64` branch of `git-sdk-64`, run under

@@ -57,7 +57,7 @@ if (process.env.RUN_NETWORK_TESTS !== 'true') {
         })
       ).toEqual(0)
       expect(
-        statSync.bind(null, `${outputDirectory}/mingw64/bin/gcc.exe`)
+        statSync.bind(null, `${outputDirectory}/ucrt64/bin/gcc.exe`)
       ).not.toThrow()
 
       const hello = child_process.spawnSync(
