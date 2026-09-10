@@ -115,7 +115,7 @@ and the `MSYSTEM` / bin-path layout inside the SDK:
 | `architecture` | repo            | MSYSTEM      | mingw bin path    | notes                                                             |
 | -------------- | --------------- | ------------ | ----------------- | ----------------------------------------------------------------- |
 | `i686`         | `git-sdk-32`    | `MINGW32`    | `/mingw32/bin`    | only `build-installers` and `full`                                |
-| `x86_64`       | `git-sdk-64`    | `MINGW64`    | `/mingw64/bin`    | the default; fast path available for `minimal`                    |
+| `x86_64`       | `git-sdk-64`    | `UCRT64`     | `/ucrt64/bin`    | the default; fast path available for `minimal`                    |
 | `aarch64`      | `git-sdk-arm64` | `CLANGARM64` | `/clangarm64/bin` | only `full` for now                                               |
 | `mingw64`      | `git-sdk-64`    | `MINGW64`    | `/mingw64/bin`   | cloned from the `mingw64` branch of `git-sdk-64`                  |
 | `ucrt64`       | `git-sdk-64`    | `UCRT64`     | `/ucrt64/bin`     | UCRT64 migration; cloned from the `ucrt64` branch of `git-sdk-64` |
@@ -124,21 +124,20 @@ The `ucrt64` axis is part of the larger UCRT64 migration tracked in
 https://github.com/git-for-windows/git-sdk-64/pull/117 and its
 follow-up comment
 https://github.com/git-for-windows/git-sdk-64/pull/117#issuecomment-4642726384.
-It shares the `git-sdk-64` repository with `x86_64` but is materialised
-from a separate transitional `ucrt64` branch (which will eventually
-replace `main`), so caches and on-disk directories must stay distinct
+It shares the `git-sdk-64` repository with `x86_64` and used to be
+materialised from a transitional `ucrt64` branch (which was integrated
+into `main`). Caches and on-disk directories stay distinct
 between the two variants (the artifact name is
-`git-sdk-ucrt64-<flavor>` rather than `git-sdk-64-<flavor>`). The
-`ci-artifacts` release of `git-sdk-64` contains no UCRT64 asset, so
-the CI-artifacts fast path is forcibly skipped for this axis; every
-flavor takes the `getViaGit` path, with `please.sh create-sdk-artifact
---architecture=ucrt64` carving the subset flavors out of the full SDK
-clone exactly as it does for the other architectures.
+`git-sdk-ucrt64-<flavor>` rather than `git-sdk-64-<flavor>`). This `ucrt64`
+axis uses the slow path, cloning and checking out the minimal subset of the
+SDK instead of downloading the pre-packaged variant from the
+`ci-artifacts` release of `git-sdk-64`.
 
-The `mingw64` axis similarly uses its own branch of `git-sdk-64` for
-all flavors, with `git-sdk-mingw64-<flavor>` artifact names and no
-CI-artifacts fast path. It preserves `MSYSTEM=MINGW64` and
-`/mingw64/bin` when `main` moves to UCRT64.
+The `mingw64` axis, offering an escape hatch for workflows that need to work
+after the MINGW64 -> UCRT64 transition concludes before they can be adapted to
+the new reality, similarly uses its own branch of `git-sdk-64` for all flavors,
+with `git-sdk-mingw64-<flavor>` artifact names and no CI-artifacts fast path.
+It preserves `MSYSTEM=MINGW64` and `/mingw64/bin` when `main` moves to UCRT64.
 
 ## Relationship to other Git for Windows repositories
 

@@ -122,7 +122,7 @@ async function run(): Promise<void> {
 
     const mingw = {
       i686: 'MINGW32',
-      x86_64: 'MINGW64',
+      x86_64: 'UCRT64',
       aarch64: 'CLANGARM64',
       mingw64: 'MINGW64',
       ucrt64: 'UCRT64'

@@ -44,7 +44,7 @@ jobs:
         include:
           - architecture: x86_64
             flavor: minimal
-            mingw_prefix: /mingw64
+            mingw_prefix: /ucrt64
           - architecture: mingw64
             flavor: minimal
             mingw_prefix: /mingw64
