@@ -11,9 +11,13 @@ const gitRoot = fs.existsSync(externalsGitDir)
   ? externalsGitDir
   : gitForWindowsRoot
 
-const gitForWindowsBinPaths = ['clangarm64', 'mingw64', 'mingw32', 'usr'].map(
-  p => `${gitRoot}/${p}/bin`
-)
+const gitForWindowsBinPaths = [
+  'clangarm64',
+  'ucrt64',
+  'mingw64',
+  'mingw32',
+  'usr'
+].map(p => `${gitRoot}/${p}/bin`)
 export const gitForWindowsUsrBinPath =
   gitForWindowsBinPaths[gitForWindowsBinPaths.length - 1]
 const gitExePath = `${gitRoot}/cmd/git.exe`

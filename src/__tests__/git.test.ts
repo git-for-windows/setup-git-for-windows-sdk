@@ -59,6 +59,7 @@ describe('git', () => {
         env: expect.objectContaining({
           PATH:
             expect.stringContaining('/clangarm64/bin') &&
+            expect.stringContaining('/ucrt64/bin') &&
             expect.stringContaining('/mingw64/bin')
         })
       })
